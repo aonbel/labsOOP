@@ -1,6 +1,6 @@
-namespace Domain.Entities;
+namespace Domain.Entities.BankServices;
 
-public class Deposit : Service
+public class Deposit : BankService
 {
     public required decimal InterestRate { get; set; }
     public required bool IsInteractable { get; set; }

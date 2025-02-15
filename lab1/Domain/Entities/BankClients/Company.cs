@@ -1,4 +1,4 @@
-namespace Domain.Entities;
+namespace Domain.Entities.BankClients;
 
 public enum CompanyType
 {
@@ -9,7 +9,7 @@ public enum CompanyType
     UnitaryEnterprise,
 }
 
-public class Company : BankUser
+public class Company : BankClient
 {
     public required CompanyType CompanyType { get; set; }
     public required string TaxIdentificationNumber { get; set; }

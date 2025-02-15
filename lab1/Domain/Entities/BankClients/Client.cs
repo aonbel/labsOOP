@@ -1,6 +1,6 @@
-namespace Domain.Entities;
+namespace Domain.Entities.BankClients;
 
-public class User : BankUser
+public class Client : BankClient
 {
     public required string FirstName { get; set; }
     public required string LastName { get; set; }
