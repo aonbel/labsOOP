@@ -1,4 +1,3 @@
-using System.Diagnostics.CodeAnalysis;
 using Application.Interfaces;
 using Domain.Entities.BankClients;
 using Infrastructure.Interfaces;

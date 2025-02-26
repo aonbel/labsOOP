@@ -1,45 +1,89 @@
+using System.Transactions;
 using Application.Interfaces;
-using Domain.Entities;
-using Infrastructure.Interfaces;
+using Infrastructure.Dtos;
+using Infrastructure.Repositories;
+using Transaction = Domain.Entities.Transaction;
 
 namespace Application.Handler;
 
 public class TransactionHandler(
-    IRepository<Transaction> transactionRepository,
-    IRepository<BankRecord> bankRecordsRepository) : ITransactionHandler
+    TransactionRepository transactionRepository,
+    BankRecordRepository bankRecordsRepository,
+    ClientRepository clientRepository) : ITransactionHandler
 {
-    public async Task<int> RunTransaction(
-        int receiverBankRecordId,
-        int recipientBankRecordId,
-        decimal amount,
-        CancellationToken cancellationToken)
+    public async Task<int> RunTransactionAsync(Transaction transaction, CancellationToken cancellationToken)
     {
-        var recipientBankRecord = await bankRecordsRepository.GetByIdAsync(recipientBankRecordId, cancellationToken);
-        var receiverBankRecord = await bankRecordsRepository.GetByIdAsync(receiverBankRecordId, cancellationToken);
-
-        var transaction = new Transaction(recipientBankRecord, receiverBankRecord, amount, DateTime.Now);
-
-        recipientBankRecord.Transactions.Add(transaction);
-
-        if (recipientBankRecord.Amount < amount)
+        var transactionDto = new TransactionDto
         {
-            transaction.IsCancelled = true;
-            return transaction.Id = await transactionRepository.AddAsync(transaction, cancellationToken);
+            Name = transaction.Name,
+            Amount = transaction.Amount,
+            Date = transaction.Date,
+            RecipientBankRecordId = transaction.ReceiverBankRecord.Id,
+            ReceiverBankRecordId = transaction.ReceiverBankRecord.Id
+        };
+
+        var recipientBankRecord =
+            await bankRecordsRepository.GetByIdAsync(transaction.RecipientBankRecord.Id, cancellationToken);
+
+        transactionDto.IsCancelled = recipientBankRecord.Amount < transaction.Amount;
+
+        if (transaction.IsCancelled)
+        {
+            return await transactionRepository.AddAsync(transactionDto, cancellationToken);
         }
+
+        var receiverBankRecord =
+            await bankRecordsRepository.GetByIdAsync(transaction.ReceiverBankRecord.Id, cancellationToken);
 
         recipientBankRecord.Amount -= transaction.Amount;
         receiverBankRecord.Amount += transaction.Amount;
 
-        receiverBankRecord.Transactions.Add(transaction);
+        using var transactionScope = new TransactionScope(TransactionScopeAsyncFlowOption.Enabled);
 
-        await bankRecordsRepository.UpdateAsync(recipientBankRecord, cancellationToken);
-        await bankRecordsRepository.UpdateAsync(receiverBankRecord, cancellationToken);
+        try
+        {
+            await bankRecordsRepository.UpdateAsync(receiverBankRecord, cancellationToken);
+            await bankRecordsRepository.UpdateAsync(recipientBankRecord, cancellationToken);
 
-        return await transactionRepository.AddAsync(transaction, cancellationToken);
+            var transactionId = await transactionRepository.AddAsync(transactionDto, cancellationToken);
+
+            transactionScope.Complete();
+
+            return transactionId;
+        }
+        catch (Exception e)
+        {
+            throw;
+        }
     }
 
-    public async Task<ICollection<Transaction>> GetTransactions(int bankRecordId, CancellationToken cancellationToken)
+    public async Task<ICollection<Transaction>> GetTransactionsInfoAsyncByBankRecordId(int bankRecordId,
+        CancellationToken cancellationToken)
     {
-        return (await bankRecordsRepository.GetByIdAsync(bankRecordId, cancellationToken)).Transactions;
+        var transactionDtos =
+            await transactionRepository.GetTransactionsAsyncByRecipientBankRecordId(bankRecordId, cancellationToken);
+
+        var transactions = transactionDtos.Select(transactionDto => new Transaction
+        {
+            Id = transactionDto.Id, Name = transactionDto.Name, Amount = transactionDto.Amount,
+            Date = transactionDto.Date
+        }).ToList();
+
+        return transactions;
+    }
+
+    public async Task<ICollection<Transaction>> GetTransactionsInfoAsyncByClientId(int clientId,
+        CancellationToken cancellationToken)
+    {
+        var bankClientInfo = await bankClientRepository.GetByIdAsync(clientId, cancellationToken);
+        
+        var transactions = new List<Transaction>();
+        
+        foreach (var bankRecordId in bankClientInfo.bankRecordIds)
+        {
+            transactions.AddRange(await GetTransactionsInfoAsyncByBankRecordId(bankRecordId, cancellationToken));
+        }
+        
+        return transactions;
     }
 }

@@ -1,24 +1,29 @@
-using System.Net.Sockets;
 using Application.Interfaces;
 using Domain.Entities.BankClients;
 using Domain.Entities.BankServices;
-using Infrastructure.Interfaces;
+using Infrastructure.Dtos;
+using Infrastructure.Repositories;
 
 namespace Application.Handler;
 
 public class BankServiceHandler<TService, TClient>(
-    IRepository<TService> bankServiceRepository,
-    IRepository<TClient> bankClientRepository)
+    BankRecordRepository bankRecordRepository,
+    CreditRepository creditRepository,
+    DepositRepository depositRepository,
+    InstallmentRepository installmentRepository, 
+    ClientHandler<TClient> clientHandler,
+    BankRecordHandler bankRecordHandler)
     : IBankServiceHandler<TService, TClient> where TService : BankService, new() where TClient : BankClient
 {
     public async Task<int> CreateBankService(int bankClientId, TService bankService,
         CancellationToken cancellationToken)
     {
-        var bankClient = await bankClientRepository.GetByIdAsync(bankClientId, cancellationToken);
-
-        bankClient.Services.Add(bankService);
-
-        return bankService.Id = await bankServiceRepository.AddAsync(bankService, cancellationToken);
+        var bankRecordDto = new BankRecordDto
+        {
+            BankClientId = bankClientId
+        };
+        
+        var recordId = await bankRecordHandler.CreateBankRecordAsync(bankClientId, bankRecordDto, cancellationToken);
     }
 
     public async Task<TService> GetBankServiceByIdAsync(int bankServiceId, CancellationToken cancellationToken)

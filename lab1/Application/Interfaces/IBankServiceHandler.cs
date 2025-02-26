@@ -1,10 +1,10 @@
 using Domain.Entities.BankClients;
 using Domain.Entities.BankServices;
-using Domain.Entities.Core;
+using Infrastructure.Repositories;
 
 namespace Application.Interfaces;
 
-public interface IBankServiceHandler<TService, TClient> 
+public interface IBankServiceHandler<TService, TClient>
      where TService : BankService
      where TClient : BankClient
 {
