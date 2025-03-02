@@ -4,11 +4,11 @@ namespace Domain.Entities.BankServices;
 
 public class BankService : Entity
 {
-    public required DateTime LastUpdatedAt { get; set; }
-    public required DateTime CreatedAt { get; set; }
-    public required DateTime ClosedAt { get; set; }
-    public required int TermInMonths  { get; set; }
+    public DateTime LastUpdatedAt { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public DateTime ClosedAt { get; set; }
+    public int TermInMonths  { get; set; }
     
-    public required BankRecord Record { get; set; }
+    public BankRecord Record { get; set; }
     public bool IsApproved { get; set; }
 }

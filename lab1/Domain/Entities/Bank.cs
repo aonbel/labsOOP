@@ -5,7 +5,7 @@ namespace Domain.Entities;
 
 public class Bank : Company
 {
-    public required string BankIdentificationCode { get; set; }
-    public required ICollection<Client> Users { get; set; }
-    public required ICollection<PredefinedBankService> PredefinedServices { get; set; }
+    public string BankIdentificationCode { get; set; }
+    public ICollection<Client> Users { get; set; }
+    public ICollection<PredefinedBankService> PredefinedServices { get; set; }
 }

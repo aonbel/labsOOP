@@ -6,7 +6,7 @@ using Npgsql;
 
 namespace Infrastructure.Repositories;
 
-public class DepositRepository(IOptions<PostgresOptions> options) : IRepository<DepositDto>
+public class DepositRepository(IOptions<PostgresOptions> options) : IDepositRepository
 {
     private readonly string _connectionString = options.Value.GetConnectionString();
 
@@ -17,9 +17,10 @@ public class DepositRepository(IOptions<PostgresOptions> options) : IRepository<
 
         const string sqlQuery = """
                                 INSERT INTO deposit_records 
-                                (bankrecordid, name, interestrate, isinteractable, lastupdatedat, createdat, closedat, terminmonths, isapproved) 
+                                (bankrecordid, name, interestrate, isinteractable, lastupdatedat, createdat, closedat, terminmonths) 
                                 VALUES
-                                (@bankrecordid, @name, @interestrate, @isinteractable, @lastupdatedat, @createdat, @closedat, @terminmonths, @isapproved)
+                                (@bankrecordid, @name, @interestrate, @isinteractable, @lastupdatedat, @createdat, @closedat, @terminmonths)
+                                RETURNING id
                                 """;
 
         var command = new NpgsqlCommand(sqlQuery, connection);
@@ -32,11 +33,8 @@ public class DepositRepository(IOptions<PostgresOptions> options) : IRepository<
         command.Parameters.AddWithValue("@createdat", entity.CreatedAt);
         command.Parameters.AddWithValue("@closedat", entity.ClosedAt);
         command.Parameters.AddWithValue("@terminmonths", entity.TermInMonths);
-        command.Parameters.AddWithValue("@isapproved", entity.isApproved);
 
-        var depositId = (int)(await command.ExecuteScalarAsync(cancellationToken) ?? throw new NpgsqlException());
-
-        return depositId;
+        return (int)(await command.ExecuteScalarAsync(cancellationToken) ?? throw new NpgsqlException());
     }
 
     public async Task<DepositDto> GetByIdAsync(int id, CancellationToken cancellationToken)
@@ -64,8 +62,7 @@ public class DepositRepository(IOptions<PostgresOptions> options) : IRepository<
             LastUpdatedAt = (DateTime)reader["lastupdatedat"],
             CreatedAt = (DateTime)reader["createdat"],
             ClosedAt = (DateTime)reader["closedat"],
-            TermInMonths = (int)reader["terminmonths"],
-            isApproved = (bool)reader["isapproved"]
+            TermInMonths = (int)reader["terminmonths"]
         };
     }
 
@@ -96,8 +93,7 @@ public class DepositRepository(IOptions<PostgresOptions> options) : IRepository<
                 LastUpdatedAt = (DateTime)reader["lastupdatedat"],
                 CreatedAt = (DateTime)reader["createdat"],
                 ClosedAt = (DateTime)reader["closedat"],
-                TermInMonths = (int)reader["terminmonths"],
-                isApproved = (bool)reader["isapproved"]
+                TermInMonths = (int)reader["terminmonths"]
             });
         }
 
@@ -118,8 +114,7 @@ public class DepositRepository(IOptions<PostgresOptions> options) : IRepository<
                                                           lastupdatedat = @lastupdatedat,
                                                           createdat = @createdat,
                                                           closedat = @closedat,
-                                                          terminmonths = @terminmonths,
-                                                          isapproved = @isapproved
+                                                          terminmonths = @terminmonths
                                 WHERE id = @id
                                 """;
 
@@ -134,7 +129,6 @@ public class DepositRepository(IOptions<PostgresOptions> options) : IRepository<
         command.Parameters.AddWithValue("@createdat", entity.CreatedAt);
         command.Parameters.AddWithValue("@closedat", entity.ClosedAt);
         command.Parameters.AddWithValue("@terminmonths", entity.TermInMonths);
-        command.Parameters.AddWithValue("@isapproved", entity.isApproved);
 
         await command.ExecuteNonQueryAsync(cancellationToken);
     }
@@ -152,5 +146,10 @@ public class DepositRepository(IOptions<PostgresOptions> options) : IRepository<
         command.Parameters.AddWithValue("@id", id);
 
         await command.ExecuteNonQueryAsync(cancellationToken);
+    }
+
+    public Task<ICollection<DepositDto>> GetByBankRecordIdAsync(int bankRecordId, CancellationToken cancellationToken)
+    {
+        throw new NotImplementedException();
     }
 }

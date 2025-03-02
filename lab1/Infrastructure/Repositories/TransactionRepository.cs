@@ -20,6 +20,7 @@ public class TransactionRepository(IOptions<PostgresOptions> options) : ITransac
                                 (name, recipientbankrecordid, receiverbankrecordid, iscancelled, date, amount)
                                 VALUES
                                 (@name, @recipientbankrecordid, @receiverbankrecordid, @iscancelled, @date, @amount)
+                                RETURNING id
                                 """;
         
         var command = new NpgsqlCommand(sqlQuery, connection);
@@ -31,9 +32,7 @@ public class TransactionRepository(IOptions<PostgresOptions> options) : ITransac
         command.Parameters.AddWithValue("@date", entity.Date);
         command.Parameters.AddWithValue("@amount", entity.Amount);
         
-        var transactionId = (int)(await command.ExecuteScalarAsync(cancellationToken) ?? throw new NpgsqlException());
-        
-        return transactionId;
+        return (int)(await command.ExecuteScalarAsync(cancellationToken) ?? throw new NpgsqlException());
     }
 
     public async Task<TransactionDto> GetByIdAsync(int id, CancellationToken cancellationToken)

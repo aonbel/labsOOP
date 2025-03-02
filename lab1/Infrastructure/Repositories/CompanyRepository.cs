@@ -18,22 +18,21 @@ public class CompanyRepository(IOptions<PostgresOptions> options) : IRepository<
 
         const string sqlQuery = """
                                 INSERT INTO company_records
-                                (bankid, companytype, taxidentificationnumber, taxidentificationtype, address) 
+                                (companytype, taxidentificationnumber, taxidentificationtype, address, isapproved) 
                                 VALUES
-                                (@bankid, @companytype, @taxidentificationnumber, @taxidentificationtype, @address)
+                                (@companytype, @taxidentificationnumber, @taxidentificationtype, @address, @isapproved)
+                                RETURNING id
                                 """;
 
         var command = new NpgsqlCommand(sqlQuery, connection);
 
-        command.Parameters.AddWithValue("@bankid", entity.BankId);
-        command.Parameters.AddWithValue("@companytype", entity.CompanyType);
+        command.Parameters.AddWithValue("@companytype", (int)entity.CompanyType);
         command.Parameters.AddWithValue("@taxidentificationnumber", entity.TaxIdentificationNumber);
         command.Parameters.AddWithValue("@taxidentificationtype", entity.TaxIdentificationType);
         command.Parameters.AddWithValue("@address", entity.Address);
+        command.Parameters.AddWithValue("@isapproved", entity.IsApproved);
 
-        var companyId = (int)(await command.ExecuteScalarAsync(cancellationToken) ?? throw new NpgsqlException());
-
-        return companyId;
+        return (int)(await command.ExecuteScalarAsync(cancellationToken) ?? throw new NpgsqlException());
     }
 
     public async Task<CompanyDto> GetByIdAsync(int id, CancellationToken cancellationToken)
@@ -54,11 +53,11 @@ public class CompanyRepository(IOptions<PostgresOptions> options) : IRepository<
         return new CompanyDto
         {
             Id = (int)reader["id"],
-            BankId = (int)reader["bankid"],
-            CompanyType = (CompanyType)reader["companytype"], // fix
+            CompanyType = (CompanyType)(int)reader["companytype"],
             TaxIdentificationNumber = (string)reader["taxidentificationnumber"],
             TaxIdentificationType = (string)reader["taxidentificationtype"],
-            Address = (string)reader["address"]
+            Address = (string)reader["address"],
+            IsApproved = (bool)reader["isapproved"]
         };
     }
 
@@ -82,11 +81,11 @@ public class CompanyRepository(IOptions<PostgresOptions> options) : IRepository<
             companies.Add(new CompanyDto
             {
                 Id = (int)reader["id"],
-                BankId = (int)reader["bankid"],
-                CompanyType = (CompanyType)reader["companytype"], // fix
+                CompanyType = (CompanyType)(int)reader["companytype"],
                 TaxIdentificationNumber = (string)reader["taxidentificationnumber"],
                 TaxIdentificationType = (string)reader["taxidentificationtype"],
-                Address = (string)reader["address"]
+                Address = (string)reader["address"],
+                IsApproved = (bool)reader["isapproved"]
             });
         }
 
@@ -100,22 +99,22 @@ public class CompanyRepository(IOptions<PostgresOptions> options) : IRepository<
 
         const string sqlQuery = """
                                 UPDATE company_records SET
-                                                          bankid = @bankid,
                                                           companytype = @companytype,
                                                           taxidentificationnumber = @taxidentificationnumber,
                                                           taxidentificationtype = @taxidentificationtype,
-                                                          address = @address
+                                                          address = @address,
+                                                          isapproved = @isapproved
                                 WHERE id = @id
                                 """;
         
         var command = new NpgsqlCommand(sqlQuery, connection);
         
         command.Parameters.AddWithValue("@id", entity.Id);
-        command.Parameters.AddWithValue("@bankid", entity.BankId);
-        command.Parameters.AddWithValue("@companytype", entity.CompanyType);
+        command.Parameters.AddWithValue("@companytype", (int)entity.CompanyType);
         command.Parameters.AddWithValue("@taxidentificationnumber", entity.TaxIdentificationNumber);
         command.Parameters.AddWithValue("@taxidentificationtype", entity.TaxIdentificationType);
         command.Parameters.AddWithValue("@address", entity.Address);
+        command.Parameters.AddWithValue("@isapproved", entity.IsApproved);
         
         await command.ExecuteNonQueryAsync(cancellationToken);
     }

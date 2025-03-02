@@ -1,6 +1,6 @@
 namespace Infrastructure.Dtos;
 
-public class SalaryProjectDto
+public class SalaryProjectDto : BankServiceDto
 {
-    
+    public ICollection<int> EmployeeIds { get; set; }
 }

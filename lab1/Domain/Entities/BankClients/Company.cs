@@ -11,8 +11,8 @@ public enum CompanyType
 
 public class Company : BankClient
 {
-    public required CompanyType CompanyType { get; set; }
-    public required string TaxIdentificationNumber { get; set; }
-    public required string TaxIdentificationType { get; set; }
-    public required string Address { get; set; }
+    public CompanyType CompanyType { get; set; }
+    public string TaxIdentificationNumber { get; set; }
+    public string TaxIdentificationType { get; set; }
+    public string Address { get; set; }
 }

@@ -1,6 +1,8 @@
+using Infrastructure.Dtos;
+
 namespace Infrastructure.Interfaces;
 
-public class IDepositRepository
+public interface IDepositRepository : IRepository<DepositDto>
 {
-    
+    public Task<ICollection<DepositDto>> GetByBankRecordIdAsync(int bankRecordId, CancellationToken cancellationToken);
 }

@@ -6,7 +6,7 @@ using Npgsql;
 
 namespace Infrastructure.Repositories;
 
-public class CreditRepository(IOptions<PostgresOptions> options) : IRepository<CreditDto>
+public class CreditRepository(IOptions<PostgresOptions> options) : ICreditRepository
 {
     private readonly string _connectionString = options.Value.GetConnectionString();
 
@@ -16,10 +16,11 @@ public class CreditRepository(IOptions<PostgresOptions> options) : IRepository<C
         await connection.OpenAsync(cancellationToken);
 
         const string sqlQuery = """
-                                                        INSERT INTO credit_records 
-                                                        (bankrecordid, name, interestrate, amount, lastupdatedat, createdat, closedat, terminmonths, isapproved) 
-                                                        VALUES
-                                                        (@bankrecordid, @name, @interestrate, @amount, @lastupdatedat, @createdat, @closedat, @terminmonths, @isapproved)
+                                INSERT INTO credit_records 
+                                (bankrecordid, name, interestrate, amount, lastupdatedat, createdat, closedat, terminmonths) 
+                                VALUES
+                                (@bankrecordid, @name, @interestrate, @amount, @lastupdatedat, @createdat, @closedat, @terminmonths)
+                                RETURNING id
                                 """;
 
         var command = new NpgsqlCommand(sqlQuery, connection);
@@ -32,11 +33,8 @@ public class CreditRepository(IOptions<PostgresOptions> options) : IRepository<C
         command.Parameters.AddWithValue("@createdat", entity.CreatedAt);
         command.Parameters.AddWithValue("@closedat", entity.ClosedAt);
         command.Parameters.AddWithValue("@terminmonths", entity.TermInMonths);
-        command.Parameters.AddWithValue("@isapproved", entity.isApproved);
 
-        var creditId = (int)(await command.ExecuteScalarAsync(cancellationToken) ?? throw new NpgsqlException());
-
-        return creditId;
+        return (int)(await command.ExecuteScalarAsync(cancellationToken) ?? throw new NpgsqlException());
     }
 
     public async Task<CreditDto> GetByIdAsync(int id, CancellationToken cancellationToken)
@@ -64,8 +62,7 @@ public class CreditRepository(IOptions<PostgresOptions> options) : IRepository<C
             LastUpdatedAt = (DateTime)reader["lastupdatedat"],
             CreatedAt = (DateTime)reader["createdat"],
             ClosedAt = (DateTime)reader["closedat"],
-            TermInMonths = (int)reader["terminmonths"],
-            isApproved = (bool)reader["isapproved"]
+            TermInMonths = (int)reader["terminmonths"]
         };
     }
 
@@ -96,8 +93,7 @@ public class CreditRepository(IOptions<PostgresOptions> options) : IRepository<C
                 LastUpdatedAt = (DateTime)reader["lastupdatedat"],
                 CreatedAt = (DateTime)reader["createdat"],
                 ClosedAt = (DateTime)reader["closedat"],
-                TermInMonths = (int)reader["terminmonths"],
-                isApproved = (bool)reader["isapproved"]
+                TermInMonths = (int)reader["terminmonths"]
             });
         }
 
@@ -118,8 +114,7 @@ public class CreditRepository(IOptions<PostgresOptions> options) : IRepository<C
                                                           lastupdatedat = @lastupdatedat,
                                                           createdat = @createdat,
                                                           closedat = @closedat,
-                                                          terminmonths = @terminmonths,
-                                                          isapproved = @isapproved
+                                                          terminmonths = @terminmonths
                                 WHERE id = @id
                                 """;
 
@@ -134,7 +129,6 @@ public class CreditRepository(IOptions<PostgresOptions> options) : IRepository<C
         command.Parameters.AddWithValue("@createdat", entity.CreatedAt);
         command.Parameters.AddWithValue("@closedat", entity.ClosedAt);
         command.Parameters.AddWithValue("@terminmonths", entity.TermInMonths);
-        command.Parameters.AddWithValue("@isapproved", entity.isApproved);
 
         await command.ExecuteNonQueryAsync(cancellationToken);
     }
@@ -152,5 +146,10 @@ public class CreditRepository(IOptions<PostgresOptions> options) : IRepository<C
         command.Parameters.AddWithValue("@id", id);
 
         await command.ExecuteNonQueryAsync(cancellationToken);
+    }
+
+    public Task<ICollection<CreditDto>> GetByBankRecordIdAsync(int bankRecordId, CancellationToken cancellationToken)
+    {
+        throw new NotImplementedException();
     }
 }

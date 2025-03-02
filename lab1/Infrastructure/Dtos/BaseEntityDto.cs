@@ -1,6 +1,6 @@
 namespace Infrastructure.Dtos;
 
-public class EntityDto
+public class BaseEntityDto
 {
-    
+    public int Id { get; set; }
 }

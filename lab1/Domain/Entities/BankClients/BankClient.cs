@@ -5,6 +5,8 @@ namespace Domain.Entities.BankClients;
 
 public class BankClient : BaseEntity
 {
-    public required ICollection<BankService> Services { get; set; }
-    public required ICollection<BankRecord> Records { get; set; }
+    public ICollection<BankService> Services { get; set; }
+    public ICollection<BankRecord> Records { get; set; }
+    
+    public bool IsApproved { get; set; }
 }

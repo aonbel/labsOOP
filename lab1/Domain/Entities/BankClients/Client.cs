@@ -2,11 +2,11 @@ namespace Domain.Entities.BankClients;
 
 public class Client : BankClient
 {
-    public required string FirstName { get; set; }
-    public required string LastName { get; set; }
-    public required string Email { get; set; }
-    public required string PassportSeries { get; set; }
-    public required int PassportNumber { get; set; }
-    public required string IdentificationNumber { get; set; }
-    public required string PhoneNumber { get; set; }
+    public string FirstName { get; set; }
+    public string LastName { get; set; }
+    public string Email { get; set; }
+    public string PassportSeries { get; set; }
+    public int PassportNumber { get; set; }
+    public string IdentificationNumber { get; set; }
+    public string PhoneNumber { get; set; }
 }

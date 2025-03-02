@@ -2,9 +2,12 @@ using Domain.Entities.BankClients;
 
 namespace Application.Interfaces;
 
-public interface IClientHandler<TClient> where TClient : BankClient
+public interface IBankClientHandler
 {
-    Task<int> CreateClientByIdAsync(TClient client, CancellationToken cancellationToken);
-    Task UpdateClientByIdAsync(TClient client, CancellationToken cancellationToken);
-    Task<TClient> GetClientByIdAsync(int clientId, CancellationToken cancellationToken);
+    Task<int> CreateClientAsync(BankClient bankClient, CancellationToken cancellationToken);
+    Task UpdateClientByIdAsync(BankClient bankClient, CancellationToken cancellationToken);
+    Task<BankClient> GetClientInfoByIdAsync(BankClient bankClient, CancellationToken cancellationToken);
+    Task<BankClient> GetClientServicesAndRecordsInfoByIdAsync(BankClient bankClient, CancellationToken cancellationToken);
+    Task<BankClient> GetClientByIdAsync(BankClient bankClient, CancellationToken cancellationToken);
+    Task<ICollection<CompanyEmployee>> GetCompanyEmployeesInfoBySalaryProjectIdAsync(int salaryProjectId, CancellationToken cancellationToken);
 }

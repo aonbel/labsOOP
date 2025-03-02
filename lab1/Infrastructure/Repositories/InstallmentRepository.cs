@@ -6,7 +6,7 @@ using Npgsql;
 
 namespace Infrastructure.Repositories;
 
-public class InstallmentRepository(IOptions<PostgresOptions> options) : IRepository<InstallmentDto>
+public class InstallmentRepository(IOptions<PostgresOptions> options) : IInstallmentRepository
 {
     private readonly string _connectionString = options.Value.GetConnectionString();
 
@@ -17,9 +17,10 @@ public class InstallmentRepository(IOptions<PostgresOptions> options) : IReposit
 
         const string sqlQuery = """
                                 INSERT INTO installment_records 
-                                (bankrecordid, name, interestrate, amount, lastupdatedat, createdat, closedat, terminmonths, isapproved) 
+                                (bankrecordid, name, interestrate, amount, lastupdatedat, createdat, closedat, terminmonths) 
                                 VALUES
-                                (@bankrecordid, @name, @interestrate, @amount, @lastupdatedat, @createdat, @closedat, @terminmonths, @isapproved)
+                                (@bankrecordid, @name, @interestrate, @amount, @lastupdatedat, @createdat, @closedat, @terminmonths)
+                                RETURNING id
                                 """;
 
         var command = new NpgsqlCommand(sqlQuery, connection);
@@ -32,11 +33,8 @@ public class InstallmentRepository(IOptions<PostgresOptions> options) : IReposit
         command.Parameters.AddWithValue("@createdat", entity.CreatedAt);
         command.Parameters.AddWithValue("@closedat", entity.ClosedAt);
         command.Parameters.AddWithValue("@terminmonths", entity.TermInMonths);
-        command.Parameters.AddWithValue("@isapproved", entity.isApproved);
 
-        var installmentId = (int)(await command.ExecuteScalarAsync(cancellationToken) ?? throw new NpgsqlException());
-
-        return installmentId;
+        return (int)(await command.ExecuteScalarAsync(cancellationToken) ?? throw new NpgsqlException());
     }
 
     public async Task<InstallmentDto> GetByIdAsync(int id, CancellationToken cancellationToken)
@@ -64,8 +62,7 @@ public class InstallmentRepository(IOptions<PostgresOptions> options) : IReposit
             LastUpdatedAt = (DateTime)reader["lastupdatedat"],
             CreatedAt = (DateTime)reader["createdat"],
             ClosedAt = (DateTime)reader["closedat"],
-            TermInMonths = (int)reader["terminmonths"],
-            isApproved = (bool)reader["isapproved"]
+            TermInMonths = (int)reader["terminmonths"]
         };
     }
 
@@ -96,8 +93,7 @@ public class InstallmentRepository(IOptions<PostgresOptions> options) : IReposit
                 LastUpdatedAt = (DateTime)reader["lastupdatedat"],
                 CreatedAt = (DateTime)reader["createdat"],
                 ClosedAt = (DateTime)reader["closedat"],
-                TermInMonths = (int)reader["terminmonths"],
-                isApproved = (bool)reader["isapproved"]
+                TermInMonths = (int)reader["terminmonths"]
             });
         }
 
@@ -118,8 +114,7 @@ public class InstallmentRepository(IOptions<PostgresOptions> options) : IReposit
                                                           lastupdatedat = @lastupdatedat,
                                                           createdat = @createdat,
                                                           closedat = @closedat,
-                                                          terminmonths = @terminmonths,
-                                                          isapproved = @isapproved
+                                                          terminmonths = @terminmonths
                                 WHERE id = @id
                                 """;
 
@@ -134,7 +129,6 @@ public class InstallmentRepository(IOptions<PostgresOptions> options) : IReposit
         command.Parameters.AddWithValue("@createdat", entity.CreatedAt);
         command.Parameters.AddWithValue("@closedat", entity.ClosedAt);
         command.Parameters.AddWithValue("@terminmonths", entity.TermInMonths);
-        command.Parameters.AddWithValue("@isapproved", entity.isApproved);
 
         await command.ExecuteNonQueryAsync(cancellationToken);
     }
@@ -152,5 +146,10 @@ public class InstallmentRepository(IOptions<PostgresOptions> options) : IReposit
         command.Parameters.AddWithValue("@id", id);
 
         await command.ExecuteNonQueryAsync(cancellationToken);
+    }
+
+    public Task<ICollection<InstallmentDto>> GetByBankRecordIdAsync(int bankRecordId, CancellationToken cancellationToken)
+    {
+        throw new NotImplementedException();
     }
 }

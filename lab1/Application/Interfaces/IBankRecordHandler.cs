@@ -1,11 +1,12 @@
 using Domain.Entities;
+using Domain.Entities.BankClients;
 using Infrastructure.Dtos;
 
 namespace Application.Interfaces;
 
 public interface IBankRecordHandler
 {
-    Task<int> CreateBankRecordAsync(int userId, CancellationToken cancellationToken);
+    Task<int> CreateBankRecordAsync(BankClient bankClient, Bank bank, CancellationToken cancellationToken);
     
     Task<BankRecord> GetBankRecordInfoByIdAsync(int bankRecordId, CancellationToken cancellationToken);
     
@@ -13,15 +14,11 @@ public interface IBankRecordHandler
     
     Task<BankRecord> GetBankRecordByIdAsync(int bankRecordId, CancellationToken cancellationToken);
     
-    Task<ICollection<BankRecord>> GetAllBankRecordsInfoOfUserByIdAsync(int userId, CancellationToken cancellationToken);
-    
-    Task<ICollection<BankRecord>> GetAllBankRecordsTransactionsByIdAsync(int userId, CancellationToken cancellationToken);
-    
-    Task<ICollection<BankRecord>> GetAllBankRecordsByIdAsync(int userId, CancellationToken cancellationToken);
+    Task<ICollection<BankRecord>> GetBankRecordsInfoByBankClientIdAsync(BankClient bankClient, CancellationToken cancellationToken);
     
     Task<ICollection<BankRecord>> GetAllBankRecordsAsync(CancellationToken cancellationToken);
     
     Task DeleteBankRecordByIdAsync(int bankRecordId, CancellationToken cancellationToken);
     
-    Task UpdateBankRecordInfoByIdAsync(int bankRecordId, BankRecord bankRecord, CancellationToken cancellationToken);
+    Task UpdateBankRecordInfoByIdAsync(BankRecord bankRecord, CancellationToken cancellationToken);
 }

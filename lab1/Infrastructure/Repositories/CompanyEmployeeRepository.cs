@@ -1,3 +1,4 @@
+using Domain.Entities.BankClients;
 using Infrastructure.Dtos;
 using Infrastructure.Interfaces;
 using Infrastructure.Options;
@@ -6,10 +7,10 @@ using Npgsql;
 
 namespace Infrastructure.Repositories;
 
-public class CompanyEmployeeRepository(IOptions<PostgresOptions> options) : IRepository<CompanyEmployeeDto>
+public class CompanyEmployeeRepository(IOptions<PostgresOptions> options) : ICompanyEmployeeRepository
 {
     private readonly string _connectionString = options.Value.GetConnectionString();
-    
+
     public async Task<int> AddAsync(CompanyEmployeeDto entity, CancellationToken cancellationToken)
     {
         await using var connection = new NpgsqlConnection(_connectionString);
@@ -17,14 +18,14 @@ public class CompanyEmployeeRepository(IOptions<PostgresOptions> options) : IRep
 
         const string sqlQuery = """
                                 INSERT INTO company_employee_records
-                                (bankid, salaryprojectid, firstname, lastname, email, passportseries, passportnumber, identificationnumber, phonenumber, position, salary) 
+                                (salaryprojectid, firstname, lastname, email, passportseries, passportnumber, identificationnumber, phonenumber, position, salary, isapproved) 
                                 VALUES
-                                (@bankid, @salaryprojectid, @firstname, @lastname, @email, @passportseries, @passportnumber, @identificationnumber, @phonenumber, @position, @salary)
+                                (@salaryprojectid, @firstname, @lastname, @email, @passportseries, @passportnumber, @identificationnumber, @phonenumber, @position, @salary, @isapproved)
+                                RETURNING id
                                 """;
 
         var command = new NpgsqlCommand(sqlQuery, connection);
 
-        command.Parameters.AddWithValue("@bankid", entity.BankId);
         command.Parameters.AddWithValue("@salaryprojectid", entity.SalaryProjectId);
         command.Parameters.AddWithValue("@firstname", entity.FirstName);
         command.Parameters.AddWithValue("@lastname", entity.LastName);
@@ -35,10 +36,9 @@ public class CompanyEmployeeRepository(IOptions<PostgresOptions> options) : IRep
         command.Parameters.AddWithValue("@phonenumber", entity.PhoneNumber);
         command.Parameters.AddWithValue("@position", entity.Position);
         command.Parameters.AddWithValue("@salary", entity.Salary);
+        command.Parameters.AddWithValue("@isapproved", entity.IsApproved);
 
-        var companyEmployeeId = (int)(await command.ExecuteScalarAsync(cancellationToken) ?? throw new NpgsqlException());
-
-        return companyEmployeeId;
+        return (int)(await command.ExecuteScalarAsync(cancellationToken) ?? throw new NpgsqlException());
     }
 
     public async Task<CompanyEmployeeDto> GetByIdAsync(int id, CancellationToken cancellationToken)
@@ -58,7 +58,6 @@ public class CompanyEmployeeRepository(IOptions<PostgresOptions> options) : IRep
         return new CompanyEmployeeDto
         {
             Id = (int)reader["id"],
-            BankId = (int)reader["bankid"],
             SalaryProjectId = (int)reader["salaryprojectid"],
             FirstName = (string)reader["firstname"],
             LastName = (string)reader["lastname"],
@@ -68,7 +67,8 @@ public class CompanyEmployeeRepository(IOptions<PostgresOptions> options) : IRep
             IdentificationNumber = (string)reader["identificationnumber"],
             PhoneNumber = (string)reader["phonenumber"],
             Position = (string)reader["position"],
-            Salary = (decimal)reader["salary"]
+            Salary = (decimal)reader["salary"],
+            IsApproved = (bool)reader["isapproved"],
         };
     }
 
@@ -80,9 +80,9 @@ public class CompanyEmployeeRepository(IOptions<PostgresOptions> options) : IRep
         const string sqlQuery = "SELECT * FROM company_employee_records";
 
         var command = new NpgsqlCommand(sqlQuery, connection);
-        
+
         await using var reader = await command.ExecuteReaderAsync(cancellationToken);
-        
+
         var companyEmployeeDtos = new List<CompanyEmployeeDto>();
 
         while (await reader.ReadAsync(cancellationToken))
@@ -90,7 +90,6 @@ public class CompanyEmployeeRepository(IOptions<PostgresOptions> options) : IRep
             companyEmployeeDtos.Add(new CompanyEmployeeDto
             {
                 Id = (int)reader["id"],
-                BankId = (int)reader["bankid"],
                 SalaryProjectId = (int)reader["salaryprojectid"],
                 FirstName = (string)reader["firstname"],
                 LastName = (string)reader["lastname"],
@@ -100,10 +99,11 @@ public class CompanyEmployeeRepository(IOptions<PostgresOptions> options) : IRep
                 IdentificationNumber = (string)reader["identificationnumber"],
                 PhoneNumber = (string)reader["phonenumber"],
                 Position = (string)reader["position"],
-                Salary = (decimal)reader["salary"]
+                Salary = (decimal)reader["salary"],
+                IsApproved = (bool)reader["isapproved"]
             });
         }
-        
+
         return companyEmployeeDtos;
     }
 
@@ -114,7 +114,6 @@ public class CompanyEmployeeRepository(IOptions<PostgresOptions> options) : IRep
 
         const string sqlQuery = """
                                 UPDATE company_employee_records SET
-                                                          bankid = @bankid,
                                                           salaryprojectid = @salaryprojectid,
                                                           firstname = @firstname,
                                                           lastname = @lastname,
@@ -124,14 +123,14 @@ public class CompanyEmployeeRepository(IOptions<PostgresOptions> options) : IRep
                                                           identificationnumber = @identificationnumber,
                                                           phonenumber = @phonenumber,
                                                           position = @position,
-                                                          salary = @salary
+                                                          salary = @salary,
+                                                          isapproved = @isapproved
                                 WHERE id = @id
                                 """;
 
         var command = new NpgsqlCommand(sqlQuery, connection);
 
         command.Parameters.AddWithValue("@id", entity.Id);
-        command.Parameters.AddWithValue("@bankid", entity.BankId);
         command.Parameters.AddWithValue("@salaryprojectid", entity.SalaryProjectId);
         command.Parameters.AddWithValue("@firstname", entity.FirstName);
         command.Parameters.AddWithValue("@lastname", entity.LastName);
@@ -142,6 +141,7 @@ public class CompanyEmployeeRepository(IOptions<PostgresOptions> options) : IRep
         command.Parameters.AddWithValue("@phonenumber", entity.PhoneNumber);
         command.Parameters.AddWithValue("@position", entity.Position);
         command.Parameters.AddWithValue("@salary", entity.Salary);
+        command.Parameters.AddWithValue("@isapproved", entity.IsApproved);
 
         await command.ExecuteNonQueryAsync(cancellationToken);
     }
@@ -158,5 +158,45 @@ public class CompanyEmployeeRepository(IOptions<PostgresOptions> options) : IRep
         command.Parameters.AddWithValue("@id", id);
 
         await command.ExecuteNonQueryAsync(cancellationToken);
+    }
+
+    public async Task<ICollection<CompanyEmployeeDto>> GetCompanyEmployeesBySalaryProjectIdAsync(int salaryProjectId,
+        CancellationToken cancellationToken)
+    {
+        await using var connection = new NpgsqlConnection(_connectionString);
+        await connection.OpenAsync(cancellationToken);
+
+        const string sqlQuery = """
+                                SELECT * FROM company_employee_records WHERE salaryprojectid = @salaryprojectid
+                                """;
+        
+        var command = new NpgsqlCommand(sqlQuery, connection);
+        
+        command.Parameters.AddWithValue("@salaryprojectid", salaryProjectId);
+        
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+        
+        var companyEmployeeDtos = new List<CompanyEmployeeDto>();
+
+        while (await reader.ReadAsync(cancellationToken))
+        {
+            companyEmployeeDtos.Add(new CompanyEmployeeDto
+            {
+                Id = (int)reader["id"],
+                SalaryProjectId = (int)reader["salaryprojectid"],
+                FirstName = (string)reader["firstname"],
+                LastName = (string)reader["lastname"],
+                Email = (string)reader["email"],
+                PassportSeries = (string)reader["passportseries"],
+                PassportNumber = (int)reader["passportnumber"],
+                IdentificationNumber = (string)reader["identificationnumber"],
+                PhoneNumber = (string)reader["phonenumber"],
+                Position = (string)reader["position"],
+                Salary = (decimal)reader["salary"],
+                IsApproved = (bool)reader["isapproved"]
+            });
+        }
+
+        return companyEmployeeDtos;
     }
 }

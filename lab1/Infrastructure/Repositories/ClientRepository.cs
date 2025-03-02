@@ -17,14 +17,14 @@ public class ClientRepository(IOptions<PostgresOptions> options) : IRepository<C
 
         const string sqlQuery = """
                                 INSERT INTO client_records 
-                                (bankid, firstname, lastname, email, passportseries, passportnumber, identificationnumber, phonenumber) 
+                                (firstname, lastname, email, passportseries, passportnumber, identificationnumber, phonenumber, isapproved) 
                                 VALUES
-                                (@bankid, @firstname, @lastname, @email, @passportseries, @passportnumber, @identificationnumber, @phonenumber)
+                                (@firstname, @lastname, @email, @passportseries, @passportnumber, @identificationnumber, @phonenumber, @isapproved)
+                                RETURNING id
                                 """;
 
         var command = new NpgsqlCommand(sqlQuery, connection);
 
-        command.Parameters.AddWithValue("@bankid", entity.BankId);
         command.Parameters.AddWithValue("@firstname", entity.FirstName);
         command.Parameters.AddWithValue("@lastname", entity.LastName);
         command.Parameters.AddWithValue("@email", entity.Email);
@@ -32,10 +32,9 @@ public class ClientRepository(IOptions<PostgresOptions> options) : IRepository<C
         command.Parameters.AddWithValue("@passportnumber", entity.PassportNumber);
         command.Parameters.AddWithValue("@identificationnumber", entity.IdentificationNumber);
         command.Parameters.AddWithValue("@phonenumber", entity.PhoneNumber);
+        command.Parameters.AddWithValue("@isapproved", entity.IsApproved);
 
-        var clientId = (int)(await command.ExecuteScalarAsync(cancellationToken) ?? throw new NpgsqlException());
-
-        return clientId;
+        return (int)(await command.ExecuteScalarAsync(cancellationToken) ?? throw new NpgsqlException());
     }
 
     public async Task<ClientDto> GetByIdAsync(int id, CancellationToken cancellationToken)
@@ -55,14 +54,14 @@ public class ClientRepository(IOptions<PostgresOptions> options) : IRepository<C
         return new ClientDto
         {
             Id = (int)reader["id"],
-            BankId = (int)reader["bankid"],
             FirstName = (string)reader["firstname"],
             LastName = (string)reader["lastname"],
             Email = (string)reader["email"],
             PassportSeries = (string)reader["passportseries"],
             PassportNumber = (int)reader["passportnumber"],
             IdentificationNumber = (string)reader["identificationnumber"],
-            PhoneNumber = (string)reader["phonenumber"]
+            PhoneNumber = (string)reader["phonenumber"],
+            IsApproved = (bool)reader["isapproved"]
         };
     }
 
@@ -84,14 +83,14 @@ public class ClientRepository(IOptions<PostgresOptions> options) : IRepository<C
             clientDtos.Add(new ClientDto
             {
                 Id = (int)reader["id"],
-                BankId = (int)reader["bankid"],
                 FirstName = (string)reader["firstname"],
                 LastName = (string)reader["lastname"],
                 Email = (string)reader["email"],
                 PassportSeries = (string)reader["passportseries"],
                 PassportNumber = (int)reader["passportnumber"],
                 IdentificationNumber = (string)reader["identificationnumber"],
-                PhoneNumber = (string)reader["phonenumber"]
+                PhoneNumber = (string)reader["phonenumber"],
+                IsApproved = (bool)reader["isapproved"]
             });
         }
 
@@ -105,21 +104,20 @@ public class ClientRepository(IOptions<PostgresOptions> options) : IRepository<C
 
         const string sqlQuery = """
                                 UPDATE client_records SET
-                                                          bankid = @bankid,
                                                           firstname = @firstname,
                                                           lastname = @lastname,
                                                           email = @email,
                                                           passportseries = @passportseries,
                                                           passportnumber = @passportnumber,
                                                           identificationnumber = @identificationnumber,
-                                                          phonenumber = @phonenumber
+                                                          phonenumber = @phonenumber,
+                                                          isapproved = @isapproved
                                 WHERE id = @id
                                 """;
 
         var command = new NpgsqlCommand(sqlQuery, connection);
 
         command.Parameters.AddWithValue("@id", entity.Id);
-        command.Parameters.AddWithValue("@bankid", entity.BankId);
         command.Parameters.AddWithValue("@firstname", entity.FirstName);
         command.Parameters.AddWithValue("@lastname", entity.LastName);
         command.Parameters.AddWithValue("@email", entity.Email);
@@ -127,6 +125,7 @@ public class ClientRepository(IOptions<PostgresOptions> options) : IRepository<C
         command.Parameters.AddWithValue("@passportnumber", entity.PassportNumber);
         command.Parameters.AddWithValue("@identificationnumber", entity.IdentificationNumber);
         command.Parameters.AddWithValue("@phonenumber", entity.PhoneNumber);
+        command.Parameters.AddWithValue("@isapproved", entity.IsApproved);
 
         await command.ExecuteNonQueryAsync(cancellationToken);
     }

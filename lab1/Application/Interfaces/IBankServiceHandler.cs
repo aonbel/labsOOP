@@ -1,16 +1,14 @@
+using Domain.Entities;
 using Domain.Entities.BankClients;
 using Domain.Entities.BankServices;
-using Infrastructure.Repositories;
 
 namespace Application.Interfaces;
 
-public interface IBankServiceHandler<TService, TClient>
-     where TService : BankService
-     where TClient : BankClient
+public interface IBankServiceHandler
 {
-     Task<int> CreateBankService(int bankClientId, TService bankService, CancellationToken cancellationToken);
-     Task<TService> GetBankServiceByIdAsync(int bankServiceId, CancellationToken cancellationToken);
-     Task<ICollection<TService>> GetBankServicesByBankClientIdAsync(int bankClientId, CancellationToken cancellationToken);
-     Task UpdateBankService(TService service, CancellationToken cancellationToken);
+     Task<int> CreateBankService(BankClient bankClient, BankService bankService, Bank bank, CancellationToken cancellationToken);
+     Task<BankService> GetBankServiceByIdAsync(BankService bankService, CancellationToken cancellationToken);
+     Task<ICollection<BankService>> GetBankServicesInfoByBankClientIdAsync(BankClient bankClient, CancellationToken cancellationToken);
+     Task UpdateBankService(BankService service, CancellationToken cancellationToken);
 }
 

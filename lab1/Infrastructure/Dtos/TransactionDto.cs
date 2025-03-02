@@ -1,10 +1,7 @@
 namespace Infrastructure.Dtos;
 
-public class TransactionDto
+public class TransactionDto : EntityDto
 {
-    public int Id { get; set; }
-    public string Name { get; set; }
-
     public int RecipientBankRecordId { get; set; }
     public int ReceiverBankRecordId { get; set; }
 

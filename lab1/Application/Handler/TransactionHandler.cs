@@ -1,15 +1,19 @@
 using System.Transactions;
 using Application.Interfaces;
+using Domain.Entities.BankClients;
 using Infrastructure.Dtos;
+using Infrastructure.Interfaces;
 using Infrastructure.Repositories;
 using Transaction = Domain.Entities.Transaction;
 
 namespace Application.Handler;
 
 public class TransactionHandler(
-    TransactionRepository transactionRepository,
-    BankRecordRepository bankRecordsRepository,
-    ClientRepository clientRepository) : ITransactionHandler
+    ITransactionRepository transactionRepository,
+    IBankRecordRepository bankRecordsRepository,
+    IRepository<ClientDto> clientRepository,
+    IRepository<CompanyDto> companyRepository,
+    ICompanyEmployeeRepository companyEmployeeRepository) : ITransactionHandler
 {
     public async Task<int> RunTransactionAsync(Transaction transaction, CancellationToken cancellationToken)
     {
@@ -65,25 +69,34 @@ public class TransactionHandler(
 
         var transactions = transactionDtos.Select(transactionDto => new Transaction
         {
-            Id = transactionDto.Id, Name = transactionDto.Name, Amount = transactionDto.Amount,
+            Id = transactionDto.Id, 
+            Name = transactionDto.Name, 
+            Amount = transactionDto.Amount,
             Date = transactionDto.Date
         }).ToList();
 
         return transactions;
     }
 
-    public async Task<ICollection<Transaction>> GetTransactionsInfoAsyncByClientId(int clientId,
+    public async Task<ICollection<Transaction>> GetTransactionsInfoAsyncByBankClientId(BankClient bankClient,
         CancellationToken cancellationToken)
     {
-        var bankClientInfo = await bankClientRepository.GetByIdAsync(clientId, cancellationToken);
-        
+        var bankClientRecordIds = bankClient switch
+        {
+            CompanyEmployee companyEmployee => (await companyEmployeeRepository.GetByIdAsync(companyEmployee.Id,
+                cancellationToken)).RecordIds,
+            Client client => (await clientRepository.GetByIdAsync(client.Id, cancellationToken)).RecordIds,
+            Company company => (await companyRepository.GetByIdAsync(company.Id, cancellationToken)).RecordIds,
+            _ => throw new ArgumentException(null, nameof(bankClient))
+        };
+
         var transactions = new List<Transaction>();
-        
-        foreach (var bankRecordId in bankClientInfo.bankRecordIds)
+
+        foreach (var bankRecordId in bankClientRecordIds)
         {
             transactions.AddRange(await GetTransactionsInfoAsyncByBankRecordId(bankRecordId, cancellationToken));
         }
-        
+
         return transactions;
     }
 }

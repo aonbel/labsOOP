@@ -3,7 +3,7 @@ using Domain.Entities.Core;
 
 namespace Domain.Entities.Users;
 
-public class Client : Entity
+public class User : Entity
 {
     public string Login { get; set; }
     public string Password { get; set; }
