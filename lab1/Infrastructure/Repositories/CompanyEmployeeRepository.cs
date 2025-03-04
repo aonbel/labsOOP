@@ -199,4 +199,39 @@ public class CompanyEmployeeRepository(IOptions<PostgresOptions> options) : ICom
 
         return companyEmployeeDtos;
     }
+
+    public async Task<ICollection<CompanyEmployeeDto>> GetAllNotApprovedAsync(CancellationToken cancellationToken)
+    {
+        await using var connection = new NpgsqlConnection(_connectionString);
+        await connection.OpenAsync(cancellationToken);
+
+        const string sqlQuery = "SELECT * FROM company_employee_records WHERE isapproved = FALSE";
+
+        var command = new NpgsqlCommand(sqlQuery, connection);
+
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+
+        var companyEmployeeDtos = new List<CompanyEmployeeDto>();
+
+        while (await reader.ReadAsync(cancellationToken))
+        {
+            companyEmployeeDtos.Add(new CompanyEmployeeDto
+            {
+                Id = (int)reader["id"],
+                SalaryProjectId = (int)reader["salaryprojectid"],
+                FirstName = (string)reader["firstname"],
+                LastName = (string)reader["lastname"],
+                Email = (string)reader["email"],
+                PassportSeries = (string)reader["passportseries"],
+                PassportNumber = (int)reader["passportnumber"],
+                IdentificationNumber = (string)reader["identificationnumber"],
+                PhoneNumber = (string)reader["phonenumber"],
+                Position = (string)reader["position"],
+                Salary = (decimal)reader["salary"],
+                IsApproved = (bool)reader["isapproved"]
+            });
+        }
+
+        return companyEmployeeDtos;
+    }
 }

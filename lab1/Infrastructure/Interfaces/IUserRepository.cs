@@ -1,4 +1,3 @@
-using Domain.Entities.Users;
 using Infrastructure.Dtos;
 
 namespace Infrastructure.Interfaces;

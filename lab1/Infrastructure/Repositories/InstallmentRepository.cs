@@ -17,9 +17,9 @@ public class InstallmentRepository(IOptions<PostgresOptions> options) : IInstall
 
         const string sqlQuery = """
                                 INSERT INTO installment_records 
-                                (bankrecordid, name, interestrate, amount, lastupdatedat, createdat, closedat, terminmonths) 
+                                (bankrecordid, name, interestrate, amount, lastupdatedat, createdat, closedat, terminmonths, isapproved) 
                                 VALUES
-                                (@bankrecordid, @name, @interestrate, @amount, @lastupdatedat, @createdat, @closedat, @terminmonths)
+                                (@bankrecordid, @name, @interestrate, @amount, @lastupdatedat, @createdat, @closedat, @terminmonths, @isapproved)
                                 RETURNING id
                                 """;
 
@@ -33,6 +33,7 @@ public class InstallmentRepository(IOptions<PostgresOptions> options) : IInstall
         command.Parameters.AddWithValue("@createdat", entity.CreatedAt);
         command.Parameters.AddWithValue("@closedat", entity.ClosedAt);
         command.Parameters.AddWithValue("@terminmonths", entity.TermInMonths);
+        command.Parameters.AddWithValue("@isapproved", entity.IsApproved);
 
         return (int)(await command.ExecuteScalarAsync(cancellationToken) ?? throw new NpgsqlException());
     }
@@ -62,7 +63,8 @@ public class InstallmentRepository(IOptions<PostgresOptions> options) : IInstall
             LastUpdatedAt = (DateTime)reader["lastupdatedat"],
             CreatedAt = (DateTime)reader["createdat"],
             ClosedAt = (DateTime)reader["closedat"],
-            TermInMonths = (int)reader["terminmonths"]
+            TermInMonths = (int)reader["terminmonths"],
+            IsApproved = (bool)reader["isapproved"]
         };
     }
 
@@ -79,11 +81,11 @@ public class InstallmentRepository(IOptions<PostgresOptions> options) : IInstall
 
         await using var reader = await command.ExecuteReaderAsync(cancellationToken);
 
-        var installments = new List<InstallmentDto>();
+        var installmentDtos = new List<InstallmentDto>();
 
         while (await reader.ReadAsync(cancellationToken))
         {
-            installments.Add(new InstallmentDto
+            installmentDtos.Add(new InstallmentDto
             {
                 Id = (int)reader["id"],
                 BankRecordId = (int)reader["bankrecordid"],
@@ -93,11 +95,12 @@ public class InstallmentRepository(IOptions<PostgresOptions> options) : IInstall
                 LastUpdatedAt = (DateTime)reader["lastupdatedat"],
                 CreatedAt = (DateTime)reader["createdat"],
                 ClosedAt = (DateTime)reader["closedat"],
-                TermInMonths = (int)reader["terminmonths"]
+                TermInMonths = (int)reader["terminmonths"],
+                IsApproved = (bool)reader["isapproved"]
             });
         }
 
-        return installments;
+        return installmentDtos;
     }
 
     public async Task UpdateAsync(InstallmentDto entity, CancellationToken cancellationToken)
@@ -114,7 +117,8 @@ public class InstallmentRepository(IOptions<PostgresOptions> options) : IInstall
                                                           lastupdatedat = @lastupdatedat,
                                                           createdat = @createdat,
                                                           closedat = @closedat,
-                                                          terminmonths = @terminmonths
+                                                          terminmonths = @terminmonths,
+                                                          isapproved = @isapproved
                                 WHERE id = @id
                                 """;
 
@@ -129,6 +133,7 @@ public class InstallmentRepository(IOptions<PostgresOptions> options) : IInstall
         command.Parameters.AddWithValue("@createdat", entity.CreatedAt);
         command.Parameters.AddWithValue("@closedat", entity.ClosedAt);
         command.Parameters.AddWithValue("@terminmonths", entity.TermInMonths);
+        command.Parameters.AddWithValue("@isapproved", entity.IsApproved);
 
         await command.ExecuteNonQueryAsync(cancellationToken);
     }
@@ -148,8 +153,75 @@ public class InstallmentRepository(IOptions<PostgresOptions> options) : IInstall
         await command.ExecuteNonQueryAsync(cancellationToken);
     }
 
-    public Task<ICollection<InstallmentDto>> GetByBankRecordIdAsync(int bankRecordId, CancellationToken cancellationToken)
+    public async Task<ICollection<InstallmentDto>> GetByBankRecordIdAsync(int bankRecordId, CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        await using var connection = new NpgsqlConnection(_connectionString);
+        await connection.OpenAsync(cancellationToken);
+
+        const string sqlQuery = """
+                                SELECT * FROM installment_records WHERE bankrecordid = @bankRecordId;
+                                """;
+
+        var command = new NpgsqlCommand(sqlQuery, connection);
+        
+        command.Parameters.AddWithValue("@bankrecordid", bankRecordId);
+
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+
+        var installmentDtos = new List<InstallmentDto>();
+
+        while (await reader.ReadAsync(cancellationToken))
+        {
+            installmentDtos.Add(new InstallmentDto
+            {
+                Id = (int)reader["id"],
+                BankRecordId = (int)reader["bankrecordid"],
+                Name = (string)reader["name"],
+                InterestRate = (decimal)reader["interestrate"],
+                Amount = (decimal)reader["amount"],
+                LastUpdatedAt = (DateTime)reader["lastupdatedat"],
+                CreatedAt = (DateTime)reader["createdat"],
+                ClosedAt = (DateTime)reader["closedat"],
+                TermInMonths = (int)reader["terminmonths"],
+                IsApproved = (bool)reader["isapproved"]
+            });
+        }
+
+        return installmentDtos;
+    }
+
+    public async Task<ICollection<InstallmentDto>> GetAllNotApprovedAsync(CancellationToken cancellationToken)
+    {
+        await using var connection = new NpgsqlConnection(_connectionString);
+        await connection.OpenAsync(cancellationToken);
+
+        const string sqlQuery = """
+                                SELECT * FROM installment_records WHERE isapproved = FALSE;
+                                """;
+
+        var command = new NpgsqlCommand(sqlQuery, connection);
+
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+
+        var installmentDtos = new List<InstallmentDto>();
+
+        while (await reader.ReadAsync(cancellationToken))
+        {
+            installmentDtos.Add(new InstallmentDto
+            {
+                Id = (int)reader["id"],
+                BankRecordId = (int)reader["bankrecordid"],
+                Name = (string)reader["name"],
+                InterestRate = (decimal)reader["interestrate"],
+                Amount = (decimal)reader["amount"],
+                LastUpdatedAt = (DateTime)reader["lastupdatedat"],
+                CreatedAt = (DateTime)reader["createdat"],
+                ClosedAt = (DateTime)reader["closedat"],
+                TermInMonths = (int)reader["terminmonths"],
+                IsApproved = (bool)reader["isapproved"]
+            });
+        }
+
+        return installmentDtos;
     }
 }

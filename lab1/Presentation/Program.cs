@@ -1,16 +1,18 @@
 ﻿using Application.Handler;
 using Application.Interfaces;
 using Domain.Entities;
-using Domain.Entities.BankClients;
 using Domain.Entities.BankServices;
 using Infrastructure.Dtos;
 using Infrastructure.Interfaces;
+using Infrastructure.Mappers;
 using Infrastructure.Options;
 using Infrastructure.Repositories;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.DependencyInjection;
+using Presentation.Dtos;
+using Presentation.Entities;
 
 var host = Host.CreateDefaultBuilder(args)
     .ConfigureAppConfiguration((context, config) =>
@@ -38,6 +40,10 @@ var host = Host.CreateDefaultBuilder(args)
             .AddScoped<IRepository<BankDto>, BankRepository>()
             .AddScoped<IRepository<ClientDto>, ClientRepository>()
             .AddScoped<IRepository<CompanyDto>, CompanyRepository>()
+            .AddScoped<IMapper<Credit, CreditDto>, CreditMapper>()
+            .AddScoped<IMapper<Deposit, DepositDto>, DepositMapper>()
+            .AddScoped<IMapper<Installment, InstallmentDto>, InstallmentMapper>()
+            .AddScoped<IMapper<SalaryProject, SalaryProjectDto>, SalaryProjectMapper>()
             .AddOptions<PostgresOptions>()
             .BindConfiguration("DbConnections:Postgres");
     })
@@ -48,40 +54,61 @@ var host = Host.CreateDefaultBuilder(args)
     })
     .Build();
 
-var bankClientHandler = host.Services.GetService<IBankClientHandler>()!;
 var bankHandler = host.Services.GetService<IBankHandler>()!;
+var userHandler = host.Services.GetService<IUserHandler>()!;
 
-var bankId = await bankHandler.CreateBank(new Bank
+var loginForm = new UserForm<LoginDto>
 {
-    Address = "GIKALO 9",
-    TaxIdentificationNumber = "12345678",
-    TaxIdentificationType = "asd",
-    CompanyType = CompanyType.SoleProprietorship,
-    BankIdentificationCode = "52"
-}, CancellationToken.None);
+    Name = "Login form",
+    OnResult = async userDto =>
+    {
+        User currentUser;
 
-var clientId = await bankClientHandler.CreateClientAsync(new Client
-{
-    FirstName = "Evgeny",
-    LastName = "Prigozhin",
-    Email = "Evgeny.Prigozhin@gmail.com",
-    IdentificationNumber = "",
-    PassportNumber = 12345678,
-    PassportSeries = "ASD",
-    PhoneNumber = "+375445894469"
-}, CancellationToken.None);
+        currentUser = await userHandler.GetUserByLoginAsync(userDto.Login, CancellationToken.None);
 
-var bankServiceHandler = host.Services.GetService<IBankServiceHandler>()!;
+        if (currentUser.Password != userDto.Password)
+        {
+            return;
+        }
+        
+        var bankClientMenu = new Menu
+        {
+            Name = "Bank client menu",
+            Options =
+            [
+                ("Records", new Menu()),
+                ("Services", new Menu())
+            ]
+        };
 
-var serviceId = await bankServiceHandler.CreateBankService(new Client
+        await bankClientMenu.RunAsync();
+    }
+};
+
+var registerForm = new UserForm<RegisterDto>
 {
-    Id = clientId
-}, new Credit
+    Name = "Register form",
+    OnResult = async RegistrationDto =>
+    {
+        var currentUser = new User
+        {
+            Login = RegistrationDto.Login,
+            Password = RegistrationDto.Password,
+            Role = "BankClient"
+        };
+        
+        await userHandler.CreateUserAsync(currentUser, CancellationToken.None);
+    }
+};
+
+var menu = new Menu
 {
-    Amount = 1000000000,
-    InterestRate = 100,
-    Name = "lox"
-}, new Bank
-{
-    Id = bankId
-}, CancellationToken.None);
+    Name = "Authorization",
+    Options =
+    [
+        ("Login", loginForm),
+        ("Register", registerForm)
+    ]
+};
+
+await menu.RunAsync();

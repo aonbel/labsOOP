@@ -21,4 +21,12 @@ public interface IBankRecordHandler
     Task DeleteBankRecordByIdAsync(int bankRecordId, CancellationToken cancellationToken);
     
     Task UpdateBankRecordInfoByIdAsync(BankRecord bankRecord, CancellationToken cancellationToken);
+    
+    Task DeactivateBankRecordByIdAsync(int bankRecordId, CancellationToken cancellationToken);
+    
+    Task ActivateBankRecordByIdAsync(int bankRecordId, CancellationToken cancellationToken);
+    
+    Task WithdrawAmountFromBankRecordByIdAsync(int bankRecordId, decimal withdrawAmount, CancellationToken cancellationToken);
+    
+    Task DepositAmountFromBankRecordByIdAsync(int bankRecordId, decimal depositAmount, CancellationToken cancellationToken);
 }

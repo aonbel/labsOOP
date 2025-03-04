@@ -1,7 +1,7 @@
 using Domain.Entities.BankClients;
 using Domain.Entities.Core;
 
-namespace Domain.Entities.Users;
+namespace Domain.Entities;
 
 public class User : Entity
 {

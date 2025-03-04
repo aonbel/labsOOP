@@ -106,7 +106,7 @@ public class BankRecordRepository(IOptions<PostgresOptions> options) : IBankReco
                                 UPDATE bank_record_records SET 
                                                         name = @name,
                                                         amount = @amount,
-                                                        isactive = @isactive,
+                                                        inactive = @isactive,
                                                         clientid = @clientid,
                                                         companyid = @companyid,
                                                         companyemployeeid = @companyemployeeid
@@ -254,5 +254,45 @@ public class BankRecordRepository(IOptions<PostgresOptions> options) : IBankReco
         }
 
         return bankRecordDtos;
+    }
+
+    public async Task UpdateStatusOfBankRecordByIdAsync(int bankRecordId, bool status, CancellationToken cancellationToken)
+    {
+        await using var connection = new NpgsqlConnection(_connectionString);
+        await connection.OpenAsync(cancellationToken);
+        
+        const string sqlQuery = """
+                                UPDATE bank_record_records
+                                SET 
+                                    isactive = @status
+                                WHERE bankrecordid = @id
+                                """;
+        
+        var command = new NpgsqlCommand(sqlQuery, connection);
+        
+        command.Parameters.AddWithValue("@id", bankRecordId);
+        command.Parameters.AddWithValue("@status", status);
+        
+        await command.ExecuteNonQueryAsync(cancellationToken);
+    }
+
+    public async Task UpdateAmountOfBankRecordByIdAsync(int bankRecordId, decimal amount, CancellationToken cancellationToken)
+    {
+        await using var connection = new NpgsqlConnection(_connectionString);
+        await connection.OpenAsync(cancellationToken);
+        
+        const string sqlQuery = """
+                                UPDATE bank_record_records
+                                SET 
+                                    amount = @amount
+                                WHERE bankrecordid = @id
+                                """;
+        
+        var command = new NpgsqlCommand(sqlQuery, connection);
+        
+        command.Parameters.AddWithValue("@id", bankRecordId);
+        command.Parameters.AddWithValue("@amount", amount);
+        
+        await command.ExecuteNonQueryAsync(cancellationToken);
     }
 }

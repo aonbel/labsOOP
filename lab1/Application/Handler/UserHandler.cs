@@ -1,7 +1,7 @@
 using System.Transactions;
 using Application.Interfaces;
 using Domain.Entities.BankClients;
-using Domain.Entities.Users;
+using Domain.Entities;
 using Infrastructure.Dtos;
 using Infrastructure.Interfaces;
 
@@ -15,7 +15,6 @@ public class UserHandler(
     {
         var userDto = new UserDto
         {
-            Name = user.Name,
             Login = user.Login,
             Password = user.Password,
             Role = user.Role
@@ -46,7 +45,6 @@ public class UserHandler(
         var user = new User
         {
             Id = userDto.Id,
-            Name = userDto.Name,
             Login = userDto.Login,
             Password = userDto.Password,
             Role = userDto.Role
@@ -86,8 +84,48 @@ public class UserHandler(
 
     public async Task<User> GetUserByLoginAsync(string login, CancellationToken cancellationToken)
     {
-        return await GetUserByIdAsync((await userRepository.GetByLoginAsync(login, cancellationToken)).Id,
-            cancellationToken);
+        using var transactionScope = new TransactionScope(TransactionScopeAsyncFlowOption.Enabled);
+
+        var userDto = await userRepository.GetByLoginAsync(login, cancellationToken);
+
+        var user = new User
+        {
+            Id = userDto.Id,
+            Login = userDto.Login,
+            Password = userDto.Password,
+            Role = userDto.Role
+        };
+
+        if (userDto.CompanyEmployeeId.HasValue)
+        {
+            user.BankClient =
+                await clientHandler.GetClientByIdAsync(new CompanyEmployee
+                {
+                    Id = userDto.CompanyEmployeeId.Value
+                }, cancellationToken);
+        }
+
+        if (userDto.CompanyId.HasValue)
+        {
+            user.BankClient =
+                await clientHandler.GetClientByIdAsync(new Company
+                {
+                    Id = userDto.CompanyId.Value
+                }, cancellationToken);
+        }
+
+        if (userDto.ClientId.HasValue)
+        {
+            user.BankClient =
+                await clientHandler.GetClientByIdAsync(new Client
+                {
+                    Id = userDto.ClientId.Value
+                }, cancellationToken);
+        }
+
+        transactionScope.Complete();
+
+        return user;
     }
 
     public async Task UpdateAsync(User user, CancellationToken cancellationToken)
@@ -95,7 +133,6 @@ public class UserHandler(
         var userDto = new UserDto
         {
             Id = user.Id,
-            Name = user.Name,
             Login = user.Login,
             Password = user.Password,
             Role = user.Role

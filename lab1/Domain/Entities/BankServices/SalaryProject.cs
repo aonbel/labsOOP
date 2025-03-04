@@ -4,5 +4,5 @@ namespace Domain.Entities.BankServices;
 
 public class SalaryProject : BankService
 {
-    public ICollection<CompanyEmployee> Employees { get; set; }
+    public Company Company { get; set; }
 }

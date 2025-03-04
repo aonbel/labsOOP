@@ -10,4 +10,5 @@ public interface IBankClientHandler
     Task<BankClient> GetClientServicesAndRecordsInfoByIdAsync(BankClient bankClient, CancellationToken cancellationToken);
     Task<BankClient> GetClientByIdAsync(BankClient bankClient, CancellationToken cancellationToken);
     Task<ICollection<CompanyEmployee>> GetCompanyEmployeesInfoBySalaryProjectIdAsync(int salaryProjectId, CancellationToken cancellationToken);
+    Task DeleteClientByIdAsync(BankClient bankClient, CancellationToken cancellationToken);
 }

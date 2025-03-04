@@ -17,9 +17,9 @@ public class CreditRepository(IOptions<PostgresOptions> options) : ICreditReposi
 
         const string sqlQuery = """
                                 INSERT INTO credit_records 
-                                (bankrecordid, name, interestrate, amount, lastupdatedat, createdat, closedat, terminmonths) 
+                                (bankrecordid, name, interestrate, amount, lastupdatedat, createdat, closedat, terminmonths, isapproved) 
                                 VALUES
-                                (@bankrecordid, @name, @interestrate, @amount, @lastupdatedat, @createdat, @closedat, @terminmonths)
+                                (@bankrecordid, @name, @interestrate, @amount, @lastupdatedat, @createdat, @closedat, @terminmonths, @isapproved)
                                 RETURNING id
                                 """;
 
@@ -33,6 +33,7 @@ public class CreditRepository(IOptions<PostgresOptions> options) : ICreditReposi
         command.Parameters.AddWithValue("@createdat", entity.CreatedAt);
         command.Parameters.AddWithValue("@closedat", entity.ClosedAt);
         command.Parameters.AddWithValue("@terminmonths", entity.TermInMonths);
+        command.Parameters.AddWithValue("@isapproved", entity.IsApproved);
 
         return (int)(await command.ExecuteScalarAsync(cancellationToken) ?? throw new NpgsqlException());
     }
@@ -62,7 +63,8 @@ public class CreditRepository(IOptions<PostgresOptions> options) : ICreditReposi
             LastUpdatedAt = (DateTime)reader["lastupdatedat"],
             CreatedAt = (DateTime)reader["createdat"],
             ClosedAt = (DateTime)reader["closedat"],
-            TermInMonths = (int)reader["terminmonths"]
+            TermInMonths = (int)reader["terminmonths"],
+            IsApproved = (bool)reader["isapproved"]
         };
     }
 
@@ -79,11 +81,11 @@ public class CreditRepository(IOptions<PostgresOptions> options) : ICreditReposi
 
         await using var reader = await command.ExecuteReaderAsync(cancellationToken);
 
-        var credits = new List<CreditDto>();
+        var creditDtos = new List<CreditDto>();
 
         while (await reader.ReadAsync(cancellationToken))
         {
-            credits.Add(new CreditDto
+            creditDtos.Add(new CreditDto
             {
                 Id = (int)reader["id"],
                 BankRecordId = (int)reader["bankrecordid"],
@@ -93,11 +95,12 @@ public class CreditRepository(IOptions<PostgresOptions> options) : ICreditReposi
                 LastUpdatedAt = (DateTime)reader["lastupdatedat"],
                 CreatedAt = (DateTime)reader["createdat"],
                 ClosedAt = (DateTime)reader["closedat"],
-                TermInMonths = (int)reader["terminmonths"]
+                TermInMonths = (int)reader["terminmonths"],
+                IsApproved = (bool)reader["isapproved"]
             });
         }
 
-        return credits;
+        return creditDtos;
     }
 
     public async Task UpdateAsync(CreditDto entity, CancellationToken cancellationToken)
@@ -114,7 +117,8 @@ public class CreditRepository(IOptions<PostgresOptions> options) : ICreditReposi
                                                           lastupdatedat = @lastupdatedat,
                                                           createdat = @createdat,
                                                           closedat = @closedat,
-                                                          terminmonths = @terminmonths
+                                                          terminmonths = @terminmonths,
+                                                          isapproved = @isapproved
                                 WHERE id = @id
                                 """;
 
@@ -129,6 +133,7 @@ public class CreditRepository(IOptions<PostgresOptions> options) : ICreditReposi
         command.Parameters.AddWithValue("@createdat", entity.CreatedAt);
         command.Parameters.AddWithValue("@closedat", entity.ClosedAt);
         command.Parameters.AddWithValue("@terminmonths", entity.TermInMonths);
+        command.Parameters.AddWithValue("@isapproved", entity.IsApproved);
 
         await command.ExecuteNonQueryAsync(cancellationToken);
     }
@@ -148,8 +153,75 @@ public class CreditRepository(IOptions<PostgresOptions> options) : ICreditReposi
         await command.ExecuteNonQueryAsync(cancellationToken);
     }
 
-    public Task<ICollection<CreditDto>> GetByBankRecordIdAsync(int bankRecordId, CancellationToken cancellationToken)
+    public async Task<ICollection<CreditDto>> GetByBankRecordIdAsync(int bankRecordId, CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        await using var connection = new NpgsqlConnection(_connectionString);
+        await connection.OpenAsync(cancellationToken);
+
+        const string sqlQuery = """
+                                SELECT * FROM credit_records WHERE bankrecordid = @bankRecordId;
+                                """;
+
+        var command = new NpgsqlCommand(sqlQuery, connection);
+        
+        command.Parameters.AddWithValue("@bankrecordid", bankRecordId);
+
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+
+        var creditDtos = new List<CreditDto>();
+
+        while (await reader.ReadAsync(cancellationToken))
+        {
+            creditDtos.Add(new CreditDto
+            {
+                Id = (int)reader["id"],
+                BankRecordId = (int)reader["bankrecordid"],
+                Name = (string)reader["name"],
+                InterestRate = (decimal)reader["interestrate"],
+                Amount = (decimal)reader["amount"],
+                LastUpdatedAt = (DateTime)reader["lastupdatedat"],
+                CreatedAt = (DateTime)reader["createdat"],
+                ClosedAt = (DateTime)reader["closedat"],
+                TermInMonths = (int)reader["terminmonths"],
+                IsApproved = (bool)reader["isapproved"]
+            });
+        }
+
+        return creditDtos;
+    }
+
+    public async Task<ICollection<CreditDto>> GetAllNotApprovedAsync(CancellationToken cancellationToken)
+    {
+        await using var connection = new NpgsqlConnection(_connectionString);
+        await connection.OpenAsync(cancellationToken);
+
+        const string sqlQuery = """
+                                SELECT * FROM credit_records WHERE isapproved = FALSE;
+                                """;
+
+        var command = new NpgsqlCommand(sqlQuery, connection);
+
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+
+        var creditDtos = new List<CreditDto>();
+
+        while (await reader.ReadAsync(cancellationToken))
+        {
+            creditDtos.Add(new CreditDto
+            {
+                Id = (int)reader["id"],
+                BankRecordId = (int)reader["bankrecordid"],
+                Name = (string)reader["name"],
+                InterestRate = (decimal)reader["interestrate"],
+                Amount = (decimal)reader["amount"],
+                LastUpdatedAt = (DateTime)reader["lastupdatedat"],
+                CreatedAt = (DateTime)reader["createdat"],
+                ClosedAt = (DateTime)reader["closedat"],
+                TermInMonths = (int)reader["terminmonths"],
+                IsApproved = (bool)reader["isapproved"]
+            });
+        }
+
+        return creditDtos;
     }
 }

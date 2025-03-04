@@ -13,10 +13,14 @@ public class BankServiceHandler(
     ICreditRepository creditRepository,
     IDepositRepository depositRepository,
     IInstallmentRepository installmentRepository,
-    ISalaryProjectRepository salaryProjectRepository)
+    ISalaryProjectRepository salaryProjectRepository,
+    IMapper<Credit, CreditDto> creditMapper,
+    IMapper<Deposit, DepositDto> depositMapper,
+    IMapper<Installment, InstallmentDto> installmentMapper,
+    IMapper<SalaryProject, SalaryProjectDto> salaryProjectMapper)
     : IBankServiceHandler
 {
-    public async Task<int> CreateBankService(BankClient bankClient, BankService bankService, Bank bank,
+    public async Task<int> CreateBankService(Bank bank, BankClient bankClient, BankService bankService,
         CancellationToken cancellationToken)
     {
         try
@@ -25,53 +29,10 @@ public class BankServiceHandler(
 
             var serviceId = bankService switch
             {
-                Credit credit => await creditRepository.AddAsync(new CreditDto
-                {
-                    Name = credit.Name,
-                    InterestRate = credit.InterestRate,
-                    Amount = credit.Amount,
-                    CreatedAt = DateTime.Now,
-                    ClosedAt = credit.ClosedAt,
-                    LastUpdatedAt = DateTime.Now,
-                    TermInMonths = credit.TermInMonths,
-                    BankRecordId = recordId,
-                    IsApproved = credit.IsApproved
-                }, cancellationToken),
-                Deposit deposit => await depositRepository.AddAsync(new DepositDto
-                {
-                    Name = deposit.Name,
-                    InterestRate = deposit.InterestRate,
-                    IsInteractable = deposit.IsInteractable,
-                    CreatedAt = DateTime.Now,
-                    ClosedAt = deposit.ClosedAt,
-                    LastUpdatedAt = DateTime.Now,
-                    TermInMonths = deposit.TermInMonths,
-                    BankRecordId = recordId,
-                    IsApproved = deposit.IsApproved
-                }, cancellationToken),
-                Installment installment => await installmentRepository.AddAsync(new InstallmentDto
-                {
-                    Name = installment.Name,
-                    InterestRate = installment.InterestRate,
-                    Amount = installment.Amount,
-                    CreatedAt = DateTime.Now,
-                    ClosedAt = installment.ClosedAt,
-                    LastUpdatedAt = DateTime.Now,
-                    TermInMonths = installment.TermInMonths,
-                    BankRecordId = recordId,
-                    IsApproved = installment.IsApproved
-                }, cancellationToken),
-                SalaryProject salaryProject => await salaryProjectRepository.AddAsync(new SalaryProjectDto
-                {
-                    Name = salaryProject.Name,
-                    BankRecordId = recordId,
-                    EmployeeIds = salaryProject.Employees.Select(e => e.Id).ToList(),
-                    CreatedAt = DateTime.Now,
-                    ClosedAt = salaryProject.ClosedAt,
-                    LastUpdatedAt = DateTime.Now,
-                    TermInMonths = salaryProject.TermInMonths,
-                    IsApproved = salaryProject.IsApproved
-                }, cancellationToken),
+                Credit credit => await creditRepository.AddAsync(creditMapper.Map(credit), cancellationToken),
+                Deposit deposit => await depositRepository.AddAsync(depositMapper.Map(deposit), cancellationToken),
+                Installment installment => await installmentRepository.AddAsync(installmentMapper.Map(installment), cancellationToken),
+                SalaryProject salaryProject => await salaryProjectRepository.AddAsync(salaryProjectMapper.Map(salaryProject), cancellationToken),
                 _ => throw new ArgumentException(null, nameof(bankService))
             };
 
@@ -91,83 +52,36 @@ public class BankServiceHandler(
         {
             case Credit credit:
                 var creditDto = await creditRepository.GetByIdAsync(credit.Id, cancellationToken);
-                var creditRecord =
-                    await bankRecordHandler.GetBankRecordByIdAsync(creditDto.BankRecordId, cancellationToken);
+                credit = creditMapper.Map(creditDto);
+                credit.Record = await bankRecordHandler.GetBankRecordByIdAsync(creditDto.BankRecordId, cancellationToken);
 
                 transactionScope.Complete();
 
-                return new Credit
-                {
-                    Id = creditDto.Id,
-                    Name = creditDto.Name,
-                    InterestRate = creditDto.InterestRate,
-                    Amount = creditDto.Amount,
-                    CreatedAt = creditDto.CreatedAt,
-                    ClosedAt = creditDto.ClosedAt,
-                    LastUpdatedAt = creditDto.LastUpdatedAt,
-                    TermInMonths = creditDto.TermInMonths,
-                    IsApproved = creditDto.IsApproved,
-                    Record = creditRecord
-                };
+                return credit;
             case Deposit deposit:
                 var depositDto = await depositRepository.GetByIdAsync(deposit.Id, cancellationToken);
-                var depositRecord =
-                    await bankRecordHandler.GetBankRecordByIdAsync(depositDto.BankRecordId, cancellationToken);
+                deposit = depositMapper.Map(depositDto);
+                deposit.Record = await bankRecordHandler.GetBankRecordByIdAsync(depositDto.BankRecordId, cancellationToken);
 
                 transactionScope.Complete();
 
-                return new Deposit
-                {
-                    Id = depositDto.Id,
-                    Name = depositDto.Name,
-                    InterestRate = depositDto.InterestRate,
-                    IsInteractable = depositDto.IsInteractable,
-                    CreatedAt = depositDto.CreatedAt,
-                    ClosedAt = depositDto.ClosedAt,
-                    LastUpdatedAt = depositDto.LastUpdatedAt,
-                    TermInMonths = depositDto.TermInMonths,
-                    IsApproved = depositDto.IsApproved,
-                    Record = depositRecord
-                };
+                return deposit;
             case Installment installment:
                 var installmentDto = await installmentRepository.GetByIdAsync(installment.Id, cancellationToken);
-                var installmentRecord =
-                    await bankRecordHandler.GetBankRecordByIdAsync(installmentDto.BankRecordId, cancellationToken);
+                installment = installmentMapper.Map(installmentDto);
+                installment.Record = await bankRecordHandler.GetBankRecordByIdAsync(installmentDto.BankRecordId, cancellationToken);
 
                 transactionScope.Complete();
 
-                return new Installment
-                {
-                    Id = installmentDto.Id,
-                    Name = installmentDto.Name,
-                    InterestRate = installmentDto.InterestRate,
-                    Amount = installmentDto.Amount,
-                    CreatedAt = installmentDto.CreatedAt,
-                    ClosedAt = installmentDto.ClosedAt,
-                    LastUpdatedAt = installmentDto.LastUpdatedAt,
-                    TermInMonths = installmentDto.TermInMonths,
-                    IsApproved = installmentDto.IsApproved,
-                    Record = installmentRecord
-                };
+                return installment;
             case SalaryProject salaryProject:
                 var salaryProjectDto = await salaryProjectRepository.GetByIdAsync(salaryProject.Id, cancellationToken);
-
-                var salaryProjectRecord =
-                    await bankRecordHandler.GetBankRecordByIdAsync(salaryProjectDto.BankRecordId, cancellationToken);
+                salaryProject = salaryProjectMapper.Map(salaryProjectDto);
+                salaryProject.Record = await bankRecordHandler.GetBankRecordByIdAsync(salaryProjectDto.BankRecordId, cancellationToken);
 
                 transactionScope.Complete();
 
-                return new SalaryProject
-                {
-                    Id = salaryProjectDto.Id,
-                    Name = salaryProjectDto.Name,
-                    Record = salaryProjectRecord,
-                    ClosedAt = salaryProjectDto.ClosedAt,
-                    CreatedAt = salaryProjectDto.CreatedAt,
-                    LastUpdatedAt = salaryProjectDto.LastUpdatedAt,
-                    TermInMonths = salaryProjectDto.TermInMonths,
-                    IsApproved = salaryProjectDto.IsApproved
-                };
+                return salaryProject;
             default:
                 throw new ArgumentException(null, nameof(bankService));
         }
@@ -185,64 +99,24 @@ public class BankServiceHandler(
         {
             foreach (var creditDto in await creditRepository.GetByBankRecordIdAsync(bankRecord.Id, cancellationToken))
             {
-                bankServices.Add(new Credit
-                {
-                    Id = creditDto.Id,
-                    Name = creditDto.Name,
-                    InterestRate = creditDto.InterestRate,
-                    Amount = creditDto.Amount,
-                    CreatedAt = creditDto.CreatedAt,
-                    ClosedAt = creditDto.ClosedAt,
-                    LastUpdatedAt = creditDto.LastUpdatedAt,
-                    TermInMonths = creditDto.TermInMonths,
-                    IsApproved = creditDto.IsApproved
-                });
+                bankServices.Add(creditMapper.Map(creditDto));
             }
-            
+
             foreach (var depositDto in await depositRepository.GetByBankRecordIdAsync(bankRecord.Id, cancellationToken))
             {
-                bankServices.Add(new Deposit
-                {
-                    Id = depositDto.Id,
-                    Name = depositDto.Name,
-                    InterestRate = depositDto.InterestRate,
-                    IsInteractable = depositDto.IsInteractable,
-                    CreatedAt = depositDto.CreatedAt,
-                    ClosedAt = depositDto.ClosedAt,
-                    LastUpdatedAt = depositDto.LastUpdatedAt,
-                    TermInMonths = depositDto.TermInMonths,
-                    IsApproved = depositDto.IsApproved
-                });
+                bankServices.Add(depositMapper.Map(depositDto));
             }
-            
-            foreach (var installmentDto in await installmentRepository.GetByBankRecordIdAsync(bankRecord.Id, cancellationToken))
+
+            foreach (var installmentDto in await installmentRepository.GetByBankRecordIdAsync(bankRecord.Id,
+                         cancellationToken))
             {
-                bankServices.Add(new Installment
-                {
-                    Id = installmentDto.Id,
-                    Name = installmentDto.Name,
-                    InterestRate = installmentDto.InterestRate,
-                    Amount = installmentDto.Amount,
-                    CreatedAt = installmentDto.CreatedAt,
-                    ClosedAt = installmentDto.ClosedAt,
-                    LastUpdatedAt = installmentDto.LastUpdatedAt,
-                    TermInMonths = installmentDto.TermInMonths,
-                    IsApproved = installmentDto.IsApproved
-                });
+                bankServices.Add(installmentMapper.Map(installmentDto));
             }
-            
-            foreach (var salaryProjectDto in await salaryProjectRepository.GetByBankRecordIdAsync(bankRecord.Id, cancellationToken))
+
+            foreach (var salaryProjectDto in await salaryProjectRepository.GetByBankRecordIdAsync(bankRecord.Id,
+                         cancellationToken))
             {
-                bankServices.Add(new Installment
-                {
-                    Id = salaryProjectDto.Id,
-                    Name = salaryProjectDto.Name,
-                    ClosedAt = salaryProjectDto.ClosedAt,
-                    CreatedAt = salaryProjectDto.CreatedAt,
-                    LastUpdatedAt = salaryProjectDto.LastUpdatedAt,
-                    TermInMonths = salaryProjectDto.TermInMonths,
-                    IsApproved = salaryProjectDto.IsApproved
-                });
+                bankServices.Add(salaryProjectMapper.Map(salaryProjectDto));
             }
         }
 
@@ -254,61 +128,35 @@ public class BankServiceHandler(
         switch (service)
         {
             case Credit credit:
-                await creditRepository.UpdateAsync(new CreditDto
-                {
-                    Id = credit.Id,
-                    Name = credit.Name,
-                    BankRecordId = credit.Record.Id,
-                    InterestRate = credit.InterestRate,
-                    Amount = credit.Amount,
-                    CreatedAt = credit.CreatedAt,
-                    ClosedAt = credit.ClosedAt,
-                    LastUpdatedAt = credit.LastUpdatedAt,
-                    TermInMonths = credit.TermInMonths
-                }, cancellationToken);
+                await creditRepository.UpdateAsync(creditMapper.Map(credit), cancellationToken);
                 break;
             case Deposit deposit:
-                await depositRepository.UpdateAsync(new DepositDto
-                {
-                    Id = deposit.Id,
-                    Name = deposit.Name,
-                    BankRecordId = deposit.Record.Id,
-                    InterestRate = deposit.InterestRate,
-                    IsInteractable = deposit.IsInteractable,
-                    CreatedAt = deposit.CreatedAt,
-                    ClosedAt = deposit.ClosedAt,
-                    LastUpdatedAt = deposit.LastUpdatedAt,
-                    TermInMonths = deposit.TermInMonths,
-                }, cancellationToken);
+                await depositRepository.UpdateAsync(depositMapper.Map(deposit), cancellationToken);
                 break;
             case Installment installment:
-                await installmentRepository.UpdateAsync(new InstallmentDto
-                {
-                    Id = installment.Id,
-                    Name = installment.Name,
-                    BankRecordId = installment.Record.Id,
-                    InterestRate = installment.InterestRate,
-                    Amount = installment.Amount,
-                    CreatedAt = installment.CreatedAt,
-                    ClosedAt = installment.ClosedAt,
-                    LastUpdatedAt = installment.LastUpdatedAt,
-                    TermInMonths = installment.TermInMonths
-                }, cancellationToken);
+                await installmentRepository.UpdateAsync(installmentMapper.Map(installment), cancellationToken);
                 break;
             case SalaryProject salaryProject:
-                await salaryProjectRepository.UpdateAsync(new SalaryProjectDto
-                {
-                    Id = salaryProject.Id,
-                    Name = salaryProject.Name,
-                    BankRecordId = salaryProject.Record.Id,
-                    CreatedAt = salaryProject.CreatedAt,
-                    ClosedAt = salaryProject.ClosedAt,
-                    LastUpdatedAt = salaryProject.LastUpdatedAt,
-                    TermInMonths = salaryProject.TermInMonths,
-                }, cancellationToken);
+                await salaryProjectRepository.UpdateAsync(salaryProjectMapper.Map(salaryProject), cancellationToken);
                 break;
             default:
                 throw new ArgumentException(null, nameof(service));
+        }
+    }
+
+    public async Task DeleteBankService(BankService service, CancellationToken cancellationToken)
+    {
+        switch (service)
+        {
+            case Credit:
+                await creditRepository.DeleteAsync(service.Id, cancellationToken);
+                break;
+            case Deposit:
+                await depositRepository.DeleteAsync(service.Id, cancellationToken);
+                break;
+            case Installment:
+                await installmentRepository.DeleteAsync(service.Id, cancellationToken);
+                break;
         }
     }
 }

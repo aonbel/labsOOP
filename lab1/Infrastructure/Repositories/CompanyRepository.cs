@@ -7,7 +7,7 @@ using Npgsql;
 
 namespace Infrastructure.Repositories;
 
-public class CompanyRepository(IOptions<PostgresOptions> options) : IRepository<CompanyDto>
+public class CompanyRepository(IOptions<PostgresOptions> options) : ICompanyRepository
 {
     private readonly string _connectionString = options.Value.GetConnectionString();
 
@@ -133,5 +133,36 @@ public class CompanyRepository(IOptions<PostgresOptions> options) : IRepository<
         command.Parameters.AddWithValue("@id", id);
         
         await command.ExecuteNonQueryAsync(cancellationToken);
+    }
+
+    public async Task<ICollection<CompanyDto>> GetAllNotApprovedAsync(CancellationToken cancellationToken)
+    {
+        await using var connection = new NpgsqlConnection(_connectionString);
+        await connection.OpenAsync(cancellationToken);
+
+        const string sqlQuery = """
+                                SELECT * FROM company_records WHERE isapproved = FALSE
+                                """;
+
+        var command = new NpgsqlCommand(sqlQuery, connection);
+
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+
+        var companies = new List<CompanyDto>();
+
+        while (await reader.ReadAsync(cancellationToken))
+        {
+            companies.Add(new CompanyDto
+            {
+                Id = (int)reader["id"],
+                CompanyType = (CompanyType)(int)reader["companytype"],
+                TaxIdentificationNumber = (string)reader["taxidentificationnumber"],
+                TaxIdentificationType = (string)reader["taxidentificationtype"],
+                Address = (string)reader["address"],
+                IsApproved = (bool)reader["isapproved"]
+            });
+        }
+
+        return companies;
     }
 }

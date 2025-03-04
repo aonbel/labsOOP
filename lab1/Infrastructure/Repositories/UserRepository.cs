@@ -1,4 +1,3 @@
-using Domain.Entities.Users;
 using Infrastructure.Dtos;
 using Infrastructure.Interfaces;
 using Infrastructure.Options;
@@ -18,15 +17,14 @@ public class UserRepository(IOptions<PostgresOptions> options) : IUserRepository
 
         const string sqlQuery = """
                                 INSERT INTO user_records  
-                                (name, login, password, role, clientid, companyid, companyemployeeid)
+                                (login, password, role, clientid, companyid, companyemployeeid)
                                 VALUES
-                                (@name, @login, @password, @role, @clientid, @companyid, @companyemployeeid)
+                                (@login, @password, @role, @clientid, @companyid, @companyemployeeid)
                                 RETURNING id
                                 """;
         
         var command = new NpgsqlCommand(sqlQuery, connection);
         
-        command.Parameters.AddWithValue("@name", entity.Name);
         command.Parameters.AddWithValue("@login", entity.Login);
         command.Parameters.AddWithValue("@password", entity.Password);
         command.Parameters.AddWithValue("@role", entity.Role);
@@ -58,13 +56,12 @@ public class UserRepository(IOptions<PostgresOptions> options) : IUserRepository
         return new UserDto
         {
             Id = (int)reader["id"],
-            Name = (string)reader["name"],
             Login = (string)reader["login"],
             Password = (string)reader["password"],
             Role = (string)reader["role"],
-            CompanyId = (int)reader["companyid"],
-            CompanyEmployeeId = (int)reader["companyemployeeid"],
-            ClientId = (int)reader["clientid"]
+            ClientId = reader["clientid"] != DBNull.Value? (int)reader["clientid"] : null,
+            CompanyId = reader["companyid"] != DBNull.Value? (int)reader["companyid"] : null,
+            CompanyEmployeeId = reader["companyemployeeid"] != DBNull.Value? (int)reader["companyemployeeid"] : null,
         };
     }
 
@@ -75,6 +72,7 @@ public class UserRepository(IOptions<PostgresOptions> options) : IUserRepository
 
         const string sqlQuery = """
                                 SELECT * FROM user_records
+                                WHERE login = @login
                                 """;
         
         var command = new NpgsqlCommand(sqlQuery, connection);
@@ -88,13 +86,12 @@ public class UserRepository(IOptions<PostgresOptions> options) : IUserRepository
             userDtos.Add(new UserDto
             {
                 Id = (int)reader["id"],
-                Name = (string)reader["name"],
                 Login = (string)reader["login"],
                 Password = (string)reader["password"],
                 Role = (string)reader["role"],
-                CompanyId = (int)reader["companyid"],
-                CompanyEmployeeId = (int)reader["companyemployeeid"],
-                ClientId = (int)reader["clientid"]
+                ClientId = reader["clientid"] != DBNull.Value? (int)reader["clientid"] : null,
+                CompanyId = reader["companyid"] != DBNull.Value? (int)reader["companyid"] : null,
+                CompanyEmployeeId = reader["companyemployeeid"] != DBNull.Value? (int)reader["companyemployeeid"] : null,
             });
         }
         
@@ -109,7 +106,6 @@ public class UserRepository(IOptions<PostgresOptions> options) : IUserRepository
         const string sqlQuery = """
                                 UPDATE user_records
                                 SET
-                                    name = @name,
                                     login = @login,
                                     password = @password,
                                     role = @role,
@@ -122,7 +118,6 @@ public class UserRepository(IOptions<PostgresOptions> options) : IUserRepository
         var command = new NpgsqlCommand(sqlQuery, connection);
         
         command.Parameters.AddWithValue("@id", entity.Id);
-        command.Parameters.AddWithValue("@name", entity.Name);
         command.Parameters.AddWithValue("@login", entity.Login);
         command.Parameters.AddWithValue("@password", entity.Password);
         command.Parameters.AddWithValue("@role", entity.Role);
@@ -156,7 +151,7 @@ public class UserRepository(IOptions<PostgresOptions> options) : IUserRepository
         await connection.OpenAsync(cancellationToken);
 
         const string sqlQuery = """
-                                SELECT * FROM user_records 
+                                SELECT * FROM user_records
                                 WHERE login = @login
                                 """;
         
@@ -167,17 +162,16 @@ public class UserRepository(IOptions<PostgresOptions> options) : IUserRepository
         await using var reader = await command.ExecuteReaderAsync(cancellationToken);
         
         await reader.ReadAsync(cancellationToken);
-        
+
         return new UserDto
         {
             Id = (int)reader["id"],
-            Name = (string)reader["name"],
             Login = (string)reader["login"],
             Password = (string)reader["password"],
             Role = (string)reader["role"],
-            CompanyId = (int)reader["companyid"],
-            CompanyEmployeeId = (int)reader["companyemployeeid"],
-            ClientId = (int)reader["clientid"]
+            ClientId = reader["clientid"] != DBNull.Value? (int)reader["clientid"] : null,
+            CompanyId = reader["companyid"] != DBNull.Value? (int)reader["companyid"] : null,
+            CompanyEmployeeId = reader["companyemployeeid"] != DBNull.Value? (int)reader["companyemployeeid"] : null,
         };
     }
 }

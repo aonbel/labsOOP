@@ -6,7 +6,7 @@ using Npgsql;
 
 namespace Infrastructure.Repositories;
 
-public class ClientRepository(IOptions<PostgresOptions> options) : IRepository<ClientDto>
+public class ClientRepository(IOptions<PostgresOptions> options) : IClientRepository
 {
     private readonly string _connectionString = options.Value.GetConnectionString();
 
@@ -142,5 +142,37 @@ public class ClientRepository(IOptions<PostgresOptions> options) : IRepository<C
         command.Parameters.AddWithValue("@id", id);
 
         await command.ExecuteNonQueryAsync(cancellationToken);
+    }
+
+    public async Task<ICollection<ClientDto>> GetAllNotApprovedAsync(CancellationToken cancellationToken)
+    {
+        await using var connection = new NpgsqlConnection(_connectionString);
+        await connection.OpenAsync(cancellationToken);
+
+        const string sqlQuery = "SELECT * FROM client_records WHERE isapproved = FALSE";
+
+        var command = new NpgsqlCommand(sqlQuery, connection);
+
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+
+        var clientDtos = new List<ClientDto>();
+
+        while (await reader.ReadAsync(cancellationToken))
+        {
+            clientDtos.Add(new ClientDto
+            {
+                Id = (int)reader["id"],
+                FirstName = (string)reader["firstname"],
+                LastName = (string)reader["lastname"],
+                Email = (string)reader["email"],
+                PassportSeries = (string)reader["passportseries"],
+                PassportNumber = (int)reader["passportnumber"],
+                IdentificationNumber = (string)reader["identificationnumber"],
+                PhoneNumber = (string)reader["phonenumber"],
+                IsApproved = (bool)reader["isapproved"]
+            });
+        }
+
+        return clientDtos;
     }
 }

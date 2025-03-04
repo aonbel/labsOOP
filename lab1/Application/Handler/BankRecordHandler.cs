@@ -134,4 +134,34 @@ public class BankRecordHandler(
 
         await bankRecordRepository.UpdateAsync(bankRecordDto, cancellationToken);
     }
+
+    public async Task DeactivateBankRecordByIdAsync(int bankRecordId, CancellationToken cancellationToken)
+    {
+        await bankRecordRepository.UpdateStatusOfBankRecordByIdAsync(bankRecordId, false, cancellationToken);
+    }
+
+    public async Task ActivateBankRecordByIdAsync(int bankRecordId, CancellationToken cancellationToken)
+    {
+        await bankRecordRepository.UpdateStatusOfBankRecordByIdAsync(bankRecordId, true, cancellationToken);
+    }
+
+    public async Task WithdrawAmountFromBankRecordByIdAsync(int bankRecordId, decimal withdrawAmount,
+        CancellationToken cancellationToken)
+    {
+        var bankRecordDto = await bankRecordRepository.GetByIdAsync(bankRecordId, cancellationToken);
+
+        if (bankRecordDto.Amount < withdrawAmount)
+        {
+            throw new ArgumentException("The bank record does not have enough funds");
+        }
+        
+        await bankRecordRepository.UpdateAmountOfBankRecordByIdAsync(bankRecordId, bankRecordDto.Amount - withdrawAmount, cancellationToken);
+    }
+
+    public async Task DepositAmountFromBankRecordByIdAsync(int bankRecordId, decimal depositAmount, CancellationToken cancellationToken)
+    {
+        var bankRecordDto = await bankRecordRepository.GetByIdAsync(bankRecordId, cancellationToken);
+        
+        await bankRecordRepository.UpdateAmountOfBankRecordByIdAsync(bankRecordId, bankRecordDto.Amount + depositAmount, cancellationToken);
+    }
 }
