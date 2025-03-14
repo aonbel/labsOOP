@@ -10,12 +10,12 @@ public class BankClientService(
     IClientRepository clientRepository,
     ICompanyRepository companyRepository,
     ICompanyEmployeeRepository companyEmployeeRepository,
+    IBankServiceService bankServiceService,
     IBankRecordService bankRecordService,
     IMapper<Client, ClientDto> clientMapper,
     IMapper<Company, CompanyDto> companyMapper,
     IMapper<CompanyEmployee, CompanyEmployeeDto> companyEmployeeMapper) : IBankClientService
 {
-    public IBankServiceService bankServiceService;
     public async Task<int> CreateClientAsync(BankClient bankClient, CancellationToken cancellationToken)
     {
         return bankClient switch
