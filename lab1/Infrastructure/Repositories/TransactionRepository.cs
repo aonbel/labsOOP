@@ -1,5 +1,5 @@
-using Infrastructure.Dtos;
-using Infrastructure.Interfaces;
+using Domain.Dtos;
+using Domain.Interfaces.IRepositories;
 using Infrastructure.Options;
 using Microsoft.Extensions.Options;
 using Npgsql;
@@ -17,15 +17,14 @@ public class TransactionRepository(IOptions<PostgresOptions> options) : ITransac
 
         const string sqlQuery = """
                                 INSERT INTO transaction_records  
-                                (name, recipientbankrecordid, receiverbankrecordid, iscancelled, date, amount)
+                                (recipientbankrecordid, receiverbankrecordid, iscancelled, date, amount)
                                 VALUES
-                                (@name, @recipientbankrecordid, @receiverbankrecordid, @iscancelled, @date, @amount)
+                                (@recipientbankrecordid, @receiverbankrecordid, @iscancelled, @date, @amount)
                                 RETURNING id
                                 """;
         
         var command = new NpgsqlCommand(sqlQuery, connection);
         
-        command.Parameters.AddWithValue("@name", entity.Name);
         command.Parameters.AddWithValue("@recipientbankrecordid", entity.RecipientBankRecordId);
         command.Parameters.AddWithValue("@receiverbankrecordid", entity.ReceiverBankRecordId);
         command.Parameters.AddWithValue("@iscancelled", entity.IsCancelled);
@@ -51,7 +50,6 @@ public class TransactionRepository(IOptions<PostgresOptions> options) : ITransac
         return new TransactionDto
         {
             Id = (int)reader["id"],
-            Name = (string)reader["name"],
             RecipientBankRecordId = (int)reader["recipientbankrecordid"],
             ReceiverBankRecordId = (int)reader["receiverbankrecordid"],
             IsCancelled = (bool)reader["iscancelled"],
@@ -78,7 +76,6 @@ public class TransactionRepository(IOptions<PostgresOptions> options) : ITransac
             transactionDtos.Add(new TransactionDto
             {
                 Id = (int)reader["id"],
-                Name = (string)reader["name"],
                 RecipientBankRecordId = (int)reader["recipientbankrecordid"],
                 ReceiverBankRecordId = (int)reader["receiverbankrecordid"],
                 IsCancelled = (bool)reader["iscancelled"],
@@ -109,7 +106,6 @@ public class TransactionRepository(IOptions<PostgresOptions> options) : ITransac
         var command = new NpgsqlCommand(sqlQuery, connection);
         
         command.Parameters.AddWithValue("@id", entity.Id);
-        command.Parameters.AddWithValue("@name", entity.Name);
         command.Parameters.AddWithValue("@recipientbankrecordid", entity.RecipientBankRecordId);
         command.Parameters.AddWithValue("@receiverbankrecordid", entity.ReceiverBankRecordId);
         command.Parameters.AddWithValue("@iscancelled", entity.IsCancelled);
@@ -154,7 +150,6 @@ public class TransactionRepository(IOptions<PostgresOptions> options) : ITransac
             transactionDtos.Add(new TransactionDto
             {
                 Id = (int)reader["id"],
-                Name = (string)reader["name"],
                 RecipientBankRecordId = (int)reader["recipientbankrecordid"],
                 ReceiverBankRecordId = (int)reader["receiverbankrecordid"],
                 IsCancelled = (bool)reader["iscancelled"],

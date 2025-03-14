@@ -2,7 +2,7 @@ using Domain.Entities.Core;
 
 namespace Domain.Entities;
 
-public class Transaction : Entity
+public class Transaction : BaseEntity
 {
     public BankRecord RecipientBankRecord { get; set; }
     public BankRecord ReceiverBankRecord { get; set; }

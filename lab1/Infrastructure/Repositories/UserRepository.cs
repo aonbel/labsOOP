@@ -1,5 +1,5 @@
-using Infrastructure.Dtos;
-using Infrastructure.Interfaces;
+using Domain.Dtos;
+using Domain.Interfaces.IRepositories;
 using Infrastructure.Options;
 using Microsoft.Extensions.Options;
 using Npgsql;

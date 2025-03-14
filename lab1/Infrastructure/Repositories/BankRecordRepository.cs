@@ -1,5 +1,6 @@
-using Infrastructure.Interfaces;
-using Infrastructure.Dtos;
+using Domain.Dtos;
+using Domain.Interfaces;
+using Domain.Interfaces.IRepositories;
 using Infrastructure.Options;
 using Microsoft.Extensions.Options;
 using Npgsql;
@@ -17,15 +18,14 @@ public class BankRecordRepository(IOptions<PostgresOptions> options) : IBankReco
 
         const string sqlQuery = """
                                 INSERT INTO bank_record_records
-                                (name, amount, isactive, clientid, companyid, companyemployeeid, bankid) 
+                                (amount, isactive, clientid, companyid, companyemployeeid, bankid) 
                                 VALUES 
-                                (@name, @amount, @isactive, @clientid, @companyid, @companyemployeeid, @bankid)
+                                (@amount, @isactive, @clientid, @companyid, @companyemployeeid, @bankid)
                                 RETURNING id
                                 """;
 
         var command = new NpgsqlCommand(sqlQuery, connection);
 
-        command.Parameters.AddWithValue("@name", entity.Name);
         command.Parameters.AddWithValue("@amount", entity.Amount);
         command.Parameters.AddWithValue("@isactive", entity.IsActive);
         command.Parameters.AddWithValue("@clientid", entity.ClientId ?? (object)DBNull.Value);
@@ -55,12 +55,11 @@ public class BankRecordRepository(IOptions<PostgresOptions> options) : IBankReco
         return new BankRecordDto
         {
             Id = (int)reader["id"],
-            Name = (string)reader["name"],
             Amount = (decimal)reader["amount"],
             IsActive = (bool)reader["isactive"],
-            ClientId = (int)reader["clientid"],
-            CompanyId = (int)reader["companyid"],
-            CompanyEmployeeId = (int)reader["companyemployeeid"],
+            ClientId = reader["clientid"] != DBNull.Value ? (int)reader["clientid"] : null,
+            CompanyId = reader["companyid"] != DBNull.Value ? (int)reader["companyid"] : null,
+            CompanyEmployeeId = reader["companyemployeeid"] != DBNull.Value ? (int)reader["companyemployeeid"] : null,
             BankId = (int)reader["bankid"]
         };
     }
@@ -84,12 +83,11 @@ public class BankRecordRepository(IOptions<PostgresOptions> options) : IBankReco
             records.Add(new BankRecordDto
             {
                 Id = (int)reader["id"],
-                Name = (string)reader["name"],
                 Amount = (decimal)reader["amount"],
                 IsActive = (bool)reader["isactive"],
-                ClientId = (int)reader["clientid"],
-                CompanyId = (int)reader["companyid"],
-                CompanyEmployeeId = (int)reader["companyemployeeid"],
+                ClientId = reader["clientid"] != DBNull.Value ? (int)reader["clientid"] : null,
+                CompanyId = reader["companyid"] != DBNull.Value ? (int)reader["companyid"] : null,
+                CompanyEmployeeId = reader["companyemployeeid"] != DBNull.Value ? (int)reader["companyemployeeid"] : null,
                 BankId = (int)reader["bankid"]
             });
         }
@@ -104,12 +102,11 @@ public class BankRecordRepository(IOptions<PostgresOptions> options) : IBankReco
 
         const string sqlQuery = """
                                 UPDATE bank_record_records SET 
-                                                        name = @name,
                                                         amount = @amount,
-                                                        inactive = @isactive,
+                                                        isactive = @isactive,
                                                         clientid = @clientid,
                                                         companyid = @companyid,
-                                                        companyemployeeid = @companyemployeeid
+                                                        companyemployeeid = @companyemployeeid,
                                                         bankid = @bankid
                                                     WHERE id = @id
                                 """;
@@ -117,7 +114,6 @@ public class BankRecordRepository(IOptions<PostgresOptions> options) : IBankReco
         var command = new NpgsqlCommand(sqlQuery, connection);
 
         command.Parameters.AddWithValue("@id", entity.Id);
-        command.Parameters.AddWithValue("@name", entity.Name);
         command.Parameters.AddWithValue("@amount", entity.Amount);
         command.Parameters.AddWithValue("@isactive", entity.IsActive);
         command.Parameters.AddWithValue("@clientid", entity.ClientId ?? (object)DBNull.Value);
@@ -169,12 +165,11 @@ public class BankRecordRepository(IOptions<PostgresOptions> options) : IBankReco
             bankRecordDtos.Add(new BankRecordDto
             {
                 Id = (int)reader["id"],
-                Name = (string)reader["name"],
                 Amount = (decimal)reader["amount"],
                 IsActive = (bool)reader["isactive"],
-                ClientId = (int)reader["clientid"],
-                CompanyId = (int)reader["companyid"],
-                CompanyEmployeeId = (int)reader["companyemployeeid"],
+                ClientId = reader["clientid"] != DBNull.Value ? (int)reader["clientid"] : null,
+                CompanyId = reader["companyid"] != DBNull.Value ? (int)reader["companyid"] : null,
+                CompanyEmployeeId = reader["companyemployeeid"] != DBNull.Value ? (int)reader["companyemployeeid"] : null,
                 BankId = (int)reader["bankid"]
             });
         }
@@ -206,12 +201,11 @@ public class BankRecordRepository(IOptions<PostgresOptions> options) : IBankReco
             bankRecordDtos.Add(new BankRecordDto
             {
                 Id = (int)reader["id"],
-                Name = (string)reader["name"],
                 Amount = (decimal)reader["amount"],
                 IsActive = (bool)reader["isactive"],
-                ClientId = (int)reader["clientid"],
-                CompanyId = (int)reader["companyid"],
-                CompanyEmployeeId = (int)reader["companyemployeeid"],
+                ClientId = reader["clientid"] != DBNull.Value ? (int)reader["clientid"] : null,
+                CompanyId = reader["companyid"] != DBNull.Value ? (int)reader["companyid"] : null,
+                CompanyEmployeeId = reader["companyemployeeid"] != DBNull.Value ? (int)reader["companyemployeeid"] : null,
                 BankId = (int)reader["bankid"]
             });
         }
@@ -243,12 +237,11 @@ public class BankRecordRepository(IOptions<PostgresOptions> options) : IBankReco
             bankRecordDtos.Add(new BankRecordDto
             {
                 Id = (int)reader["id"],
-                Name = (string)reader["name"],
                 Amount = (decimal)reader["amount"],
                 IsActive = (bool)reader["isactive"],
-                ClientId = (int)reader["clientid"],
-                CompanyId = (int)reader["companyid"],
-                CompanyEmployeeId = (int)reader["companyemployeeid"],
+                ClientId = reader["clientid"] != DBNull.Value ? (int)reader["clientid"] : null,
+                CompanyId = reader["companyid"] != DBNull.Value ? (int)reader["companyid"] : null,
+                CompanyEmployeeId = reader["companyemployeeid"] != DBNull.Value ? (int)reader["companyemployeeid"] : null,
                 BankId = (int)reader["bankid"]
             });
         }
@@ -265,7 +258,7 @@ public class BankRecordRepository(IOptions<PostgresOptions> options) : IBankReco
                                 UPDATE bank_record_records
                                 SET 
                                     isactive = @status
-                                WHERE bankrecordid = @id
+                                WHERE id = @id
                                 """;
         
         var command = new NpgsqlCommand(sqlQuery, connection);
@@ -285,7 +278,7 @@ public class BankRecordRepository(IOptions<PostgresOptions> options) : IBankReco
                                 UPDATE bank_record_records
                                 SET 
                                     amount = @amount
-                                WHERE bankrecordid = @id
+                                WHERE id = @id
                                 """;
         
         var command = new NpgsqlCommand(sqlQuery, connection);
