@@ -35,23 +35,22 @@ public class UserActionMapper : IMapper<UserAction, UserActionDto>
                 Id = dto.UserId,
             },
             Date = dto.Date,
+            PreviousStateId = dto.PreviousStateId,
             PreviousState = dto.ActionTargetType switch
             {
-                nameof(CreditDto) => new Credit(),
-                nameof(DepositDto) => new Deposit(),
-                nameof(InstallmentDto) => new Installment(),
-                nameof(SalaryProjectDto) => new SalaryProject(),
-                nameof(ClientDto) => new Client(),
-                nameof(CompanyDto) => new Company(),
-                nameof(CompanyEmployeeDto) => new CompanyEmployee(),
-                nameof(BankRecordDto) => new BankRecord(),
-                nameof(TransactionDto) => new Transaction(),
+                nameof(Credit) => new Credit(),
+                nameof(Deposit) => new Deposit(),
+                nameof(Installment) => new Installment(),
+                nameof(SalaryProject) => new SalaryProject(),
+                nameof(Client) => new Client(),
+                nameof(Company) => new Company(),
+                nameof(CompanyEmployee) => new CompanyEmployee(),
+                nameof(BankRecord) => new BankRecord(),
+                nameof(Transaction) => new Transaction(),
                 _ => throw new ArgumentOutOfRangeException()
             },
-            Type = (ActionType)dto.Type,
+            Type = (ActionType)dto.Type
         };
-        
-        userAction.PreviousState.Id = dto.PreviousStateId;
         
         return userAction;
     }

@@ -15,6 +15,8 @@ public class UserAction : Entity
     
     public DateTime Date { get; set; }
     
+    public int PreviousStateId { get; set; }
+    
     public BaseEntity PreviousState { get; set; }
     
     public ActionType Type { get; set; }

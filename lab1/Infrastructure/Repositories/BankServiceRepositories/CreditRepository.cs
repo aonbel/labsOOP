@@ -47,6 +47,8 @@ public class CreditRepository(IOptions<PostgresOptions> options) : ICreditReposi
                                 """;
 
         var command = new NpgsqlCommand(sqlQuery, connection);
+        
+        command.Parameters.AddWithValue("@id", id);
 
         await using var reader = await command.ExecuteReaderAsync(cancellationToken);
 

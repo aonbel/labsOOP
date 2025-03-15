@@ -48,6 +48,8 @@ public class CreditStateRepository (IOptions<PostgresOptions> options) : ICRRepo
                                 """;
 
         var command = new NpgsqlCommand(sqlQuery, connection);
+        
+        command.Parameters.AddWithValue("@id", id);
 
         await using var reader = await command.ExecuteReaderAsync(cancellationToken);
 

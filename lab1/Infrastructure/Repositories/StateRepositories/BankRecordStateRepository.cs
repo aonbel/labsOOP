@@ -42,7 +42,7 @@ public class BankRecordStateRepository(IOptions<PostgresOptions> options) : ICRR
         await connection.OpenAsync(cancellationToken);
 
         const string sqlQuery = """
-                                SELECT * FROM bank_record_records 
+                                SELECT * FROM bank_record_state_records 
                                          WHERE id = @id
                                 """;
         var command = new NpgsqlCommand(sqlQuery, connection);
@@ -71,7 +71,7 @@ public class BankRecordStateRepository(IOptions<PostgresOptions> options) : ICRR
         await connection.OpenAsync(cancellationToken);
 
         const string sqlQuery = """
-                                SELECT * FROM bank_record_records
+                                SELECT * FROM bank_record_state_records
                                 """;
         var command = new NpgsqlCommand(sqlQuery, connection);
 

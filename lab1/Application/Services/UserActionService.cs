@@ -11,6 +11,7 @@ using Domain.Interfaces;
 using Domain.Interfaces.IRepositories;
 using Domain.Interfaces.IRepositories.IBankClientRepositories;
 using Domain.Interfaces.IRepositories.IBankServiceRepositories;
+using Domain.Mappers;
 
 namespace Application.Services;
 
@@ -97,29 +98,49 @@ public class UserActionService(
     {
         var userAction = userActionMapper.Map(await userActionRepository.GetByIdAsync(userActionId, cancellationToken));
 
+        var targetId = userAction.PreviousState switch
+        {
+            Credit => (await creditStateRepository.GetByIdAsync(userAction.PreviousStateId, cancellationToken)).Id,
+            Deposit => (await depositStateRepository.GetByIdAsync(userAction.PreviousStateId, cancellationToken)).Id,
+            Installment =>
+                (await installmentStateRepository.GetByIdAsync(userAction.PreviousStateId, cancellationToken)).Id,
+            SalaryProject => (await salaryProjectStateRepository.GetByIdAsync(userAction.PreviousStateId,
+                cancellationToken)).Id,
+            CompanyEmployee => (await companyEmployeeStateRepository.GetByIdAsync(userAction.PreviousStateId,
+                cancellationToken)).Id,
+            Company => (
+                await companyEmployeeStateRepository.GetByIdAsync(userAction.PreviousStateId, cancellationToken)).Id,
+            Client => (await clientStateRepository.GetByIdAsync(userAction.PreviousStateId, cancellationToken)).Id,
+            Transaction =>
+                (await transactionStateRepository.GetByIdAsync(userAction.PreviousStateId, cancellationToken)).Id,
+            BankRecord => (await bankRecordStateRepository.GetByIdAsync(userAction.PreviousStateId, cancellationToken))
+                .Id,
+            _ => throw new NotImplementedException()
+        };
+
         BaseEntity actionTarget = userAction.PreviousState switch
         {
             Credit => creditMapper.Map(
-                await creditRepository.GetByIdAsync(userAction.PreviousState.Id, cancellationToken)),
+                await creditRepository.GetByIdAsync(targetId, cancellationToken)),
             Deposit => depositMapper.Map(
-                await depositRepository.GetByIdAsync(userAction.PreviousState.Id, cancellationToken)),
+                await depositRepository.GetByIdAsync(targetId, cancellationToken)),
             Installment => installmentMapper.Map(
-                await installmentRepository.GetByIdAsync(userAction.PreviousState.Id, cancellationToken)),
+                await installmentRepository.GetByIdAsync(targetId, cancellationToken)),
             SalaryProject => salaryProjectMapper.Map(
-                await salaryProjectRepository.GetByIdAsync(userAction.PreviousState.Id, cancellationToken)),
+                await salaryProjectRepository.GetByIdAsync(targetId, cancellationToken)),
             CompanyEmployee => companyEmployeeMapper.Map(
-                await companyEmployeeRepository.GetByIdAsync(userAction.PreviousState.Id, cancellationToken)),
+                await companyEmployeeRepository.GetByIdAsync(targetId, cancellationToken)),
             Company => companyMapper.Map(
-                await companyRepository.GetByIdAsync(userAction.PreviousState.Id, cancellationToken)),
+                await companyRepository.GetByIdAsync(targetId, cancellationToken)),
             Client => clientMapper.Map(
-                await clientRepository.GetByIdAsync(userAction.PreviousState.Id, cancellationToken)),
+                await clientRepository.GetByIdAsync(targetId, cancellationToken)),
             BankRecord => bankRecordMapper.Map(
-                await bankRecordRepository.GetByIdAsync(userAction.PreviousState.Id, cancellationToken)),
+                await bankRecordRepository.GetByIdAsync(targetId, cancellationToken)),
             Transaction => transactionMapper.Map(
-                await transactionRepository.GetByIdAsync(userAction.PreviousState.Id, cancellationToken)),
+                await transactionRepository.GetByIdAsync(targetId, cancellationToken)),
             _ => throw new NotImplementedException()
         };
-        
+
         return actionTarget;
     }
 
@@ -140,6 +161,29 @@ public class UserActionService(
     public async Task RevertUserActionByIdAsync(int userActionId, CancellationToken cancellationToken)
     {
         var userAction = userActionMapper.Map(await userActionRepository.GetByIdAsync(userActionId, cancellationToken));
+
+        userAction.PreviousState = userAction.PreviousState switch
+        {
+            Credit => creditMapper.Map(
+                await creditStateRepository.GetByIdAsync(userAction.PreviousStateId, cancellationToken)),
+            Deposit => depositMapper.Map(
+                await depositStateRepository.GetByIdAsync(userAction.PreviousStateId, cancellationToken)),
+            Installment => installmentMapper.Map(
+                await installmentStateRepository.GetByIdAsync(userAction.PreviousStateId, cancellationToken)),
+            SalaryProject => salaryProjectMapper.Map(
+                await salaryProjectStateRepository.GetByIdAsync(userAction.PreviousStateId, cancellationToken)),
+            CompanyEmployee => companyEmployeeMapper.Map(
+                await companyEmployeeStateRepository.GetByIdAsync(userAction.PreviousStateId, cancellationToken)),
+            Company => companyMapper.Map(
+                await companyStateRepository.GetByIdAsync(userAction.PreviousStateId, cancellationToken)),
+            Client => clientMapper.Map(
+                await clientStateRepository.GetByIdAsync(userAction.PreviousStateId, cancellationToken)),
+            Transaction => transactionMapper.Map(
+                await transactionStateRepository.GetByIdAsync(userAction.PreviousStateId, cancellationToken)),
+            BankRecord => bankRecordMapper.Map(
+                await bankRecordStateRepository.GetByIdAsync(userAction.PreviousStateId, cancellationToken)),
+            _ => throw new NotImplementedException()
+        };
 
         switch (userAction.Type)
         {

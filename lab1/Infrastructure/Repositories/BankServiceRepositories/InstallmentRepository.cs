@@ -47,6 +47,8 @@ public class InstallmentRepository(IOptions<PostgresOptions> options) : IInstall
                                 """;
 
         var command = new NpgsqlCommand(sqlQuery, connection);
+        
+        command.Parameters.AddWithValue("@id", id);
 
         await using var reader = await command.ExecuteReaderAsync(cancellationToken);
 

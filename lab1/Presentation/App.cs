@@ -93,15 +93,15 @@ public class App(IHost host)
                         await actionsMenu.RunAsync();
                     }
                 }),
-                ("Revert action of user", new UserForm<UserActionDto>
+                ("Revert action of user", new UserForm<BaseEntityInputDto>
                 {
-                    Name = "Input id of user",
-                    OnResult = async userActionDto =>
+                    Name = "Input id of action",
+                    OnResult = async baseEntityInputDto =>
                     {
                         var userActionService = host.Services.GetService<IUserActionService>()!;
 
                         var userAction = await userActionService.GetUserActionByIdAsync(
-                            userActionDto.Id,
+                            baseEntityInputDto.Id,
                             CancellationToken.None);
 
                         var userActionTypeReversed = userAction.Type switch
@@ -123,7 +123,7 @@ public class App(IHost host)
                         );
 
                         await userActionService.RevertUserActionByIdAsync(
-                            userActionDto.UserId,
+                            baseEntityInputDto.Id,
                             CancellationToken.None);
                     }
                 })
@@ -299,13 +299,17 @@ public class App(IHost host)
                             .Select(request => ((string Label, IUiInstance))($"{request.GetType().Name} {request.Id}",
                                 request switch
                                 {
-                                    Client client => new InfoForm<Client>
+                                    CompanyEmployee companyEmployee => new InfoForm<CompanyEmployee>
                                     {
-                                        Name = $"Client {request.Id}", Entity = client
+                                        Name = $"CompanyEmployee {request.Id}", Entity = companyEmployee
                                     },
                                     Company company => new InfoForm<Company>
                                     {
                                         Name = $"Company {request.Id}", Entity = company
+                                    },
+                                    Client client => new InfoForm<Client>
+                                    {
+                                        Name = $"Client {request.Id}", Entity = client
                                     },
                                     _ => throw new ArgumentOutOfRangeException(nameof(request), request, null)
                                 }))
@@ -325,27 +329,28 @@ public class App(IHost host)
                     Name = "Choose bank client type",
                     Options =
                     [
-                        ("Client", new UserForm<BaseEntityInputDto>
+                        ("CompanyEmployee", new UserForm<BaseEntityInputDto>
                         {
-                            Name = "Client request id input",
+                            Name = "CompanyEmployee request id input",
                             OnResult = async baseEntityInputDto =>
                             {
                                 var requestService = host.Services.GetService<IRequestService>()!;
                                 var userActionService = host.Services.GetService<IUserActionService>()!;
                                 var bankClientService = host.Services.GetService<IBankClientService>()!;
-                                var clientId = new Client
+                                
+                                var companyEmployeeId = new CompanyEmployee
                                 {
                                     Id = baseEntityInputDto.Id,
                                 };
 
                                 await userActionService.AddUserActionAsync(
                                     _currentUser!.Id,
-                                    await bankClientService.GetClientByIdAsync(clientId, CancellationToken.None),
+                                    await bankClientService.GetClientByIdAsync(companyEmployeeId, CancellationToken.None),
                                     $"Approve request for client {baseEntityInputDto.Id}",
                                     ActionType.Update,
                                     CancellationToken.None);
 
-                                await requestService.ApproveBankClientRequestAsync(clientId, CancellationToken.None);
+                                await requestService.ApproveBankClientRequestAsync(companyEmployeeId, CancellationToken.None);
                             }
                         }),
                         ("Company", new UserForm<BaseEntityInputDto>
@@ -369,6 +374,29 @@ public class App(IHost host)
                                     CancellationToken.None);
 
                                 await requestService.ApproveBankClientRequestAsync(companyId, CancellationToken.None);
+                            }
+                        }),
+                        ("Client", new UserForm<BaseEntityInputDto>
+                        {
+                            Name = "Client request id input",
+                            OnResult = async baseEntityInputDto =>
+                            {
+                                var requestService = host.Services.GetService<IRequestService>()!;
+                                var userActionService = host.Services.GetService<IUserActionService>()!;
+                                var bankClientService = host.Services.GetService<IBankClientService>()!;
+                                var clientId = new Client
+                                {
+                                    Id = baseEntityInputDto.Id,
+                                };
+
+                                await userActionService.AddUserActionAsync(
+                                    _currentUser!.Id,
+                                    await bankClientService.GetClientByIdAsync(clientId, CancellationToken.None),
+                                    $"Approve request for client {baseEntityInputDto.Id}",
+                                    ActionType.Update,
+                                    CancellationToken.None);
+
+                                await requestService.ApproveBankClientRequestAsync(clientId, CancellationToken.None);
                             }
                         })
                     ]
@@ -397,15 +425,15 @@ public class App(IHost host)
                         await actionsMenu.RunAsync();
                     }
                 }),
-                ("Revert action of company", new UserForm<UserActionDto>
+                ("Revert action of company", new UserForm<BaseEntityInputDto>
                 {
-                    Name = "Input id of company",
-                    OnResult = async userActionDto =>
+                    Name = "Input id of action",
+                    OnResult = async baseEntityInputDto =>
                     {
                         var userActionService = host.Services.GetService<IUserActionService>()!;
 
                         var userAction = await userActionService.GetUserActionByIdAsync(
-                            userActionDto.Id,
+                            baseEntityInputDto.Id,
                             CancellationToken.None);
 
                         var userActionTypeReversed = userAction.Type switch
@@ -427,7 +455,7 @@ public class App(IHost host)
                         );
 
                         await userActionService.RevertUserActionByIdAsync(
-                            userActionDto.UserId,
+                            baseEntityInputDto.Id,
                             CancellationToken.None);
                     }
                 }),
@@ -1085,7 +1113,14 @@ public class App(IHost host)
             {
                 var userHandler = host.Services.GetService<IUserService>()!;
 
-                _currentUser = await userHandler.GetUserByLoginAsync(userDto.Login, CancellationToken.None);
+                try
+                {
+                    _currentUser = await userHandler.GetUserByLoginAsync(userDto.Login, CancellationToken.None);
+                }
+                catch (Exception e)
+                {
+                    return;
+                }
 
                 if (_currentUser.Password != userDto.Password)
                 {
@@ -1100,12 +1135,14 @@ public class App(IHost host)
                         {
                             await clientMenu.RunAsync();
                         }
+
                         break;
                     case "Company":
                         if (_currentUser!.BankClient!.IsApproved)
                         {
                             await companyMenu.RunAsync();
                         }
+
                         break;
                     case "Operator":
                         await operatorMenu.RunAsync();
@@ -1135,7 +1172,7 @@ public class App(IHost host)
 
                 var requestService = host.Services.GetService<IRequestService>()!;
                 company.Id = await requestService.CreateBankClientRequestAsync(company, CancellationToken.None);
-                
+
                 var newUser = new User
                 {
                     Login = registrationDto.Login,
@@ -1202,12 +1239,12 @@ public class App(IHost host)
                     Salary = registrationDto.Salary,
                     Position = registrationDto.Position
                 };
-                
+
                 var requestService = host.Services.GetService<IRequestService>()!;
                 companyEmployee.Id = await requestService.CreateBankClientRequestAsync(
-                    companyEmployee, 
+                    companyEmployee,
                     CancellationToken.None);
-                
+
                 var newUser = new User
                 {
                     Login = registrationDto.Login,
@@ -1215,17 +1252,45 @@ public class App(IHost host)
                     Role = "CompanyEmployee",
                     BankClient = companyEmployee
                 };
-                
+
                 var userHandler = host.Services.GetService<IUserService>()!;
                 await userHandler.CreateUserAsync(newUser, CancellationToken.None);
             }
         };
-            
+
+        var bankMenu = new ActionForm
+        {
+            Name = "Getting info",
+            Handler = async () =>
+            {
+                var bankService = host.Services.GetService<IBankService>()!;
+
+                var banksInfo = await bankService.GetBanksInfoAsync(CancellationToken.None);
+
+                var options = banksInfo
+                    .Select(bank => (bank.Id.ToString(), new InfoForm<Bank>
+                    {
+                        Name = "Bank info",
+                        Entity = bank,
+                    } as IUiInstance))
+                    .ToList();
+
+                var bankMenu = new MenuForm
+                {
+                    Name = "Bank menu",
+                    Options = options,
+                };
+
+                await bankMenu.RunAsync();
+            }
+        };
+
         var mainMenu = new MenuForm
         {
             Name = "Authorization",
             Options =
             [
+                ("Get list of banks", bankMenu),
                 ("Login", loginForm),
                 ("Register as a client", registrationAsClientForm),
                 ("Register as a company", registrationAsCompanyForm),

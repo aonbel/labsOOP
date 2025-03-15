@@ -80,8 +80,6 @@ public class BankRepository(IOptions<PostgresOptions> options) : IRepository<Ban
 
         await using var reader = await command.ExecuteReaderAsync(cancellationToken);
         
-        await reader.ReadAsync(cancellationToken);
-        
         var bankDtos = new List<BankDto>();
 
         while (await reader.ReadAsync(cancellationToken))
